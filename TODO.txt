@@ -1,0 +1,5 @@
+- Reader Tab: markdown MathJax support
+- Magnifier editor feature: per-chapter split and customized split
+- Magnifier editor feature: chapter tree for inner structure visualization
+- publish to github
+- Jules Code Review

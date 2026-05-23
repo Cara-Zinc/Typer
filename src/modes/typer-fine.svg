@@ -1,0 +1,218 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 950" width="100%" height="100%">
+    <defs>
+        <!-- Reusable Key Components -->
+        <g id="key-base">
+            <!-- Outer Key Rim -->
+            <circle cx="0" cy="0" r="24" fill="white" stroke="black" stroke-width="4" />
+            <!-- Inner Key Bezel -->
+            <circle cx="0" cy="0" r="18" fill="white" stroke="black" stroke-width="2" />
+        </g>
+
+        <style>
+            .key-text {
+                font-family: 'Courier New', Courier, monospace;
+                font-size: 26px;
+                font-weight: 900;
+                fill: black;
+                text-anchor: middle;
+            }
+            .typed-text {
+                font-family: 'Courier New', Courier, monospace;
+                font-size: 22px;
+                font-weight: 900;
+                fill: black;
+            }
+            .brand-text {
+                font-family: 'Times New Roman', Times, serif;
+                font-size: 32px;
+                font-style: italic;
+                font-weight: bold;
+                fill: black;
+                text-anchor: middle;
+                letter-spacing: 6px;
+            }
+            .sub-brand {
+                font-family: 'Times New Roman', Times, serif;
+                font-size: 12px;
+                font-weight: bold;
+                fill: black;
+                text-anchor: middle;
+                letter-spacing: 4px;
+            }
+        </style>
+    </defs>
+
+    <!-- Background -->
+    <rect width="1200" height="950" fill="white" />
+
+    <!-- Rear Body Chassis -->
+    <path d="M 230 380 C 230 320, 270 290, 400 290 L 800 290 C 930 290, 970 320, 970 380 L 1000 520 L 200 520 Z" fill="white" stroke="black" stroke-width="6" stroke-linejoin="round" />
+    <!-- Rear Body Chassis Inner Trim (Blueprint style) -->
+    <path d="M 245 380 C 245 330, 280 305, 400 305 L 800 305 C 920 305, 955 330, 955 380 L 980 505 L 220 505 Z" fill="none" stroke="black" stroke-width="2" />
+
+    <!-- Paper Bail (Scale Bar) & Back Paper Roller -->
+    <rect x="300" y="275" width="600" height="20" rx="10" fill="white" stroke="black" stroke-width="4" />
+    <line x1="310" y1="285" x2="890" y2="285" stroke="black" stroke-width="2" />
+    
+    <!-- Platen (Main Rubber Roller) -->
+    <rect x="290" y="240" width="620" height="55" rx="4" fill="white" stroke="black" stroke-width="5" />
+    <!-- Platen Cylindrical Texture Lines -->
+    <line x1="290" y1="250" x2="910" y2="250" stroke="black" stroke-width="1.5" />
+    <line x1="290" y1="285" x2="910" y2="285" stroke="black" stroke-width="1.5" />
+    
+    <!-- Platen Knobs & Left/Right Ends -->
+    <!-- Left Knob -->
+    <rect x="270" y="245" width="20" height="45" rx="3" fill="white" stroke="black" stroke-width="4" />
+    <circle cx="250" cy="267" r="32" fill="white" stroke="black" stroke-width="4" />
+    <circle cx="250" cy="267" r="26" fill="none" stroke="black" stroke-width="2" stroke-dasharray="3 4" />
+    <circle cx="250" cy="267" r="18" fill="white" stroke="black" stroke-width="3" />
+    <circle cx="250" cy="267" r="6" fill="black" />
+    
+    <!-- Right Knob -->
+    <rect x="910" y="245" width="20" height="45" rx="3" fill="white" stroke="black" stroke-width="4" />
+    <circle cx="950" cy="267" r="32" fill="white" stroke="black" stroke-width="4" />
+    <circle cx="950" cy="267" r="26" fill="none" stroke="black" stroke-width="2" stroke-dasharray="3 4" />
+    <circle cx="950" cy="267" r="18" fill="white" stroke="black" stroke-width="3" />
+    <circle cx="950" cy="267" r="6" fill="black" />
+
+    <!-- Carriage Return Lever (Left Side Sweeping Arc) -->
+    <path d="M 270 260 Q 110 250 110 310 Q 110 340 130 340 Q 150 340 135 310 Q 120 280 270 285 Z" fill="white" stroke="black" stroke-width="5" stroke-linejoin="round" />
+    <path d="M 270 266 Q 125 258 125 310 Q 125 325 135 325 Q 140 325 130 310 Q 125 285 270 279 Z" fill="none" stroke="black" stroke-width="1.5" />
+    
+    <!-- Paper Bail (Front Bar with Rulers) -->
+    <rect x="310" y="225" width="580" height="12" rx="6" fill="white" stroke="black" stroke-width="4" />
+    <!-- Ruler Marks -->
+    <line x1="330" y1="231" x2="870" y2="231" stroke="black" stroke-width="3" stroke-dasharray="6 8" />
+    
+    <!-- Bail Rollers (Tiny Rubber Wheels) -->
+    <rect x="420" y="215" width="24" height="32" rx="4" fill="white" stroke="black" stroke-width="4" />
+    <rect x="425" y="215" width="14" height="32" fill="none" stroke="black" stroke-width="2" />
+    <rect x="756" y="215" width="24" height="32" rx="4" fill="white" stroke="black" stroke-width="4" />
+    <rect x="761" y="215" width="14" height="32" fill="none" stroke="black" stroke-width="2" />
+
+    <!-- Ribbon Spools -->
+    <!-- Left Spool -->
+    <g transform="translate(360, 420)">
+        <circle cx="0" cy="0" r="55" fill="white" stroke="black" stroke-width="5" />
+        <circle cx="0" cy="0" r="48" fill="none" stroke="black" stroke-width="2" />
+        <!-- Metal Spool Arms -->
+        <path d="M 0 -55 L 0 55 M -55 0 L 55 0 M -39 -39 L 39 39 M -39 39 L 39 -39" stroke="black" stroke-width="4" />
+        <circle cx="0" cy="0" r="20" fill="white" stroke="black" stroke-width="4" />
+        <circle cx="0" cy="0" r="6" fill="black" />
+    </g>
+    <!-- Right Spool -->
+    <g transform="translate(840, 420)">
+        <circle cx="0" cy="0" r="55" fill="white" stroke="black" stroke-width="5" />
+        <circle cx="0" cy="0" r="48" fill="none" stroke="black" stroke-width="2" />
+        <!-- Metal Spool Arms -->
+        <path d="M 0 -55 L 0 55 M -55 0 L 55 0 M -39 -39 L 39 39 M -39 39 L 39 -39" stroke="black" stroke-width="4" />
+        <circle cx="0" cy="0" r="20" fill="white" stroke="black" stroke-width="4" />
+        <circle cx="0" cy="0" r="6" fill="black" />
+    </g>
+
+    <!-- Ribbon Tape -->
+    <path d="M 360 420 Q 480 350 585 260 L 615 260 Q 720 350 840 420" fill="none" stroke="black" stroke-width="8" />
+
+    <!-- Ribbon & Strike Guide (Vibrator) -->
+    <path d="M 585 270 L 585 240 L 575 220 L 585 220 L 595 240 L 605 240 L 615 220 L 625 220 L 615 240 L 615 270 Z" fill="white" stroke="black" stroke-width="4" stroke-linejoin="round" />
+    <path d="M 592 245 L 608 245 M 592 255 L 608 255 M 600 245 L 600 270" fill="none" stroke="black" stroke-width="2" />
+
+    <!-- Main Front Chassis (Sloping Down) -->
+    <path d="M 190 520 L 1010 520 L 1100 850 L 100 850 Z" fill="white" stroke="black" stroke-width="6" stroke-linejoin="round" />
+    <!-- Inner Front Chassis Trim -->
+    <path d="M 205 530 L 995 530 L 1075 840 L 125 840 Z" fill="none" stroke="black" stroke-width="2" />
+    
+    <!-- Cutout for Keyboard (The mechanical pit recess) -->
+    <path d="M 270 520 L 930 520 L 990 780 L 210 780 Z" fill="white" stroke="black" stroke-width="6" stroke-linejoin="round" />
+    <!-- Recess Bevel Lines -->
+    <path d="M 270 520 L 290 540 L 910 540 L 930 520" fill="none" stroke="black" stroke-width="3" stroke-linejoin="round" />
+    <path d="M 210 780 L 230 760 L 970 760 L 990 780" fill="none" stroke="black" stroke-width="3" stroke-linejoin="round" />
+    <path d="M 290 540 L 230 760 M 910 540 L 970 760" fill="none" stroke="black" stroke-width="3" />
+
+    <!-- Typebars (The Basket - Intricate overlapping metal arms) -->
+    <!-- Semi-circular resting rest -->
+    <path d="M 370 510 C 370 560, 830 560, 830 510" fill="none" stroke="black" stroke-width="6" />
+    <path d="M 370 510 C 370 560, 830 560, 830 510" fill="none" stroke="white" stroke-width="2" />
+    
+    <g fill="none" stroke="black" stroke-width="2">
+        <!-- Individual Arms converging at the strike point (600, 270) -->
+        <path d="M 390 510 Q 500 400 595 270" /><path d="M 405 515 Q 505 400 596 270" />
+        <path d="M 420 520 Q 510 405 596 270" /><path d="M 435 524 Q 515 405 597 270" />
+        <path d="M 450 527 Q 520 410 597 270" /><path d="M 465 530 Q 525 410 598 270" />
+        <path d="M 480 532 Q 530 415 598 270" /><path d="M 495 534 Q 535 415 599 270" />
+        <path d="M 510 535 Q 545 420 599 270" /><path d="M 525 536 Q 555 420 600 270" />
+        <path d="M 540 537 Q 565 425 600 270" /><path d="M 555 538 Q 575 425 600 270" />
+        <path d="M 570 538 Q 585 430 600 270" /><path d="M 585 539 Q 595 430 600 270" />
+        <path d="M 600 539 Q 600 430 600 270" />
+        <path d="M 615 539 Q 605 430 600 270" /><path d="M 630 538 Q 615 430 600 270" />
+        <path d="M 645 538 Q 625 425 600 270" /><path d="M 660 537 Q 635 425 600 270" />
+        <path d="M 675 536 Q 645 420 600 270" /><path d="M 690 535 Q 655 420 601 270" />
+        <path d="M 705 534 Q 665 415 601 270" /><path d="M 720 532 Q 670 415 602 270" />
+        <path d="M 735 530 Q 675 410 602 270" /><path d="M 750 527 Q 680 410 603 270" />
+        <path d="M 765 524 Q 685 405 603 270" /><path d="M 780 520 Q 690 405 604 270" />
+        <path d="M 795 515 Q 695 400 604 270" /><path d="M 810 510 Q 700 400 605 270" />
+    </g>
+
+    <!-- KEYBOARD LAYOUT -->
+    <!-- Row 0: Numbers (12 Keys) spaced by 60px -->
+    <g transform="translate(270, 540)"><use href="#key-base"/><text x="0" y="8" class="key-text">1</text></g>
+    <g transform="translate(330, 540)"><use href="#key-base"/><text x="0" y="8" class="key-text">2</text></g>
+    <g transform="translate(390, 540)"><use href="#key-base"/><text x="0" y="8" class="key-text">3</text></g>
+    <g transform="translate(450, 540)"><use href="#key-base"/><text x="0" y="8" class="key-text">4</text></g>
+    <g transform="translate(510, 540)"><use href="#key-base"/><text x="0" y="8" class="key-text">5</text></g>
+    <g transform="translate(570, 540)"><use href="#key-base"/><text x="0" y="8" class="key-text">6</text></g>
+    <g transform="translate(630, 540)"><use href="#key-base"/><text x="0" y="8" class="key-text">7</text></g>
+    <g transform="translate(690, 540)"><use href="#key-base"/><text x="0" y="8" class="key-text">8</text></g>
+    <g transform="translate(750, 540)"><use href="#key-base"/><text x="0" y="8" class="key-text">9</text></g>
+    <g transform="translate(810, 540)"><use href="#key-base"/><text x="0" y="8" class="key-text">0</text></g>
+    <g transform="translate(870, 540)"><use href="#key-base"/><text x="0" y="8" class="key-text">-</text></g>
+    <g transform="translate(930, 540)"><use href="#key-base"/><text x="0" y="8" class="key-text">=</text></g>
+
+    <!-- Row 1: QWERTY (10 Keys) centered, spaced by 60px -->
+    <g transform="translate(330, 610)"><use href="#key-base"/><text x="0" y="8" class="key-text">Q</text></g>
+    <g transform="translate(390, 610)"><use href="#key-base"/><text x="0" y="8" class="key-text">W</text></g>
+    <g transform="translate(450, 610)"><use href="#key-base"/><text x="0" y="8" class="key-text">E</text></g>
+    <g transform="translate(510, 610)"><use href="#key-base"/><text x="0" y="8" class="key-text">R</text></g>
+    <g transform="translate(570, 610)"><use href="#key-base"/><text x="0" y="8" class="key-text">T</text></g>
+    <g transform="translate(630, 610)"><use href="#key-base"/><text x="0" y="8" class="key-text">Y</text></g>
+    <g transform="translate(690, 610)"><use href="#key-base"/><text x="0" y="8" class="key-text">U</text></g>
+    <g transform="translate(750, 610)"><use href="#key-base"/><text x="0" y="8" class="key-text">I</text></g>
+    <g transform="translate(810, 610)"><use href="#key-base"/><text x="0" y="8" class="key-text">O</text></g>
+    <g transform="translate(870, 610)"><use href="#key-base"/><text x="0" y="8" class="key-text">P</text></g>
+
+    <!-- Row 2: ASDF (9 Keys) centered, spaced by 60px -->
+    <g transform="translate(360, 680)"><use href="#key-base"/><text x="0" y="8" class="key-text">A</text></g>
+    <g transform="translate(420, 680)"><use href="#key-base"/><text x="0" y="8" class="key-text">S</text></g>
+    <g transform="translate(480, 680)"><use href="#key-base"/><text x="0" y="8" class="key-text">D</text></g>
+    <g transform="translate(540, 680)"><use href="#key-base"/><text x="0" y="8" class="key-text">F</text></g>
+    <g transform="translate(600, 680)"><use href="#key-base"/><text x="0" y="8" class="key-text">G</text></g>
+    <g transform="translate(660, 680)"><use href="#key-base"/><text x="0" y="8" class="key-text">H</text></g>
+    <g transform="translate(720, 680)"><use href="#key-base"/><text x="0" y="8" class="key-text">J</text></g>
+    <g transform="translate(780, 680)"><use href="#key-base"/><text x="0" y="8" class="key-text">K</text></g>
+    <g transform="translate(840, 680)"><use href="#key-base"/><text x="0" y="8" class="key-text">L</text></g>
+
+    <!-- Row 3: ZXCV (9 Keys) centered -->
+    <g transform="translate(360, 750)"><use href="#key-base"/><text x="0" y="8" class="key-text">Z</text></g>
+    <g transform="translate(420, 750)"><use href="#key-base"/><text x="0" y="8" class="key-text">X</text></g>
+    <g transform="translate(480, 750)"><use href="#key-base"/><text x="0" y="8" class="key-text">C</text></g>
+    <g transform="translate(540, 750)"><use href="#key-base"/><text x="0" y="8" class="key-text">V</text></g>
+    <g transform="translate(600, 750)"><use href="#key-base"/><text x="0" y="8" class="key-text">B</text></g>
+    <g transform="translate(660, 750)"><use href="#key-base"/><text x="0" y="8" class="key-text">N</text></g>
+    <g transform="translate(720, 750)"><use href="#key-base"/><text x="0" y="8" class="key-text">M</text></g>
+    <g transform="translate(780, 750)"><use href="#key-base"/><text x="0" y="8" class="key-text">,</text></g>
+    <g transform="translate(840, 750)"><use href="#key-base"/><text x="0" y="8" class="key-text">.</text></g>
+
+    <!-- Spacebar -->
+    <g transform="translate(600, 820)">
+        <rect x="-260" y="-18" width="520" height="36" rx="18" fill="white" stroke="black" stroke-width="4" />
+        <rect x="-254" y="-12" width="508" height="24" rx="12" fill="none" stroke="black" stroke-width="2" />
+    </g>
+
+    <!-- Front Lip & Trim -->
+    <path d="M 100 850 L 1100 850 L 1050 890 L 150 890 Z" fill="white" stroke="black" stroke-width="6" stroke-linejoin="round" />
+    <path d="M 120 860 L 1080 860 L 1040 880 L 160 880 Z" fill="none" stroke="black" stroke-width="2" />
+    
+    <!-- Vintage Branding Decal -->
+    <text x="600" y="475" class="brand-text">CORONA</text>
+    <text x="600" y="495" class="sub-brand">STANDARD TYPEWRITER CO.</text>
+</svg>

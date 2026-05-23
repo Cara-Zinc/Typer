@@ -1,0 +1,329 @@
+@import "tailwindcss";
+
+/* Enable class-based dark mode in Tailwind v4 — any element with a `.dark`
+   ancestor (or itself .dark) matches the `dark:` variant. We toggle this
+   class on the App root from a global theme state in localStorage. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Inter", "Helvetica Neue", Arial, sans-serif;
+  --font-serif: "Iowan Old Style", "Palatino Linotype", "Georgia", "Garamond", serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", "Menlo", "Courier New", monospace;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  background: #ffffff;
+  color: #000000;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* In dark mode the page itself flips so there's no flash of white when the
+   App swaps `bg-white` → `bg-black` during route changes / first paint. */
+html:has(.dark),
+body:has(.dark) {
+  background: #000000;
+  color: #ffffff;
+}
+
+::selection {
+  background: #000000;
+  color: #ffffff;
+}
+.dark ::selection {
+  background: #ffffff;
+  color: #000000;
+}
+
+/* --- Typewriter strike animation ---
+   Each newly typed character is briefly emphasized to mimic a hammer striking paper.
+   The animation is intentionally short and ink-only: no color shift, no glow. */
+@keyframes typer-strike {
+  0% {
+    transform: translateY(-0.12em) scale(1.02);
+    opacity: 0.0;
+  }
+  35% {
+    transform: translateY(0.04em) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.typer-char {
+  display: inline-block;
+  white-space: pre;
+  animation: typer-strike 90ms ease-out;
+}
+
+/* --- Caret blink for the typer --- */
+@keyframes caret-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+.typer-caret {
+  display: inline-block;
+  width: 0.55em;
+  height: 1.1em;
+  vertical-align: text-bottom;
+  background: #000;
+  animation: caret-blink 1s step-end infinite;
+  margin-left: 1px;
+}
+.dark .typer-caret {
+  background: #fff;
+}
+
+/* Hidden textarea that captures keystrokes while the visible "paper" renders the text. */
+.typer-capture {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  caret-color: transparent;
+  resize: none;
+  border: none;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  padding: inherit;
+  z-index: 2;
+}
+
+/* --- Typewriter SVG: per-element transform origins for the press/swing animations. ---
+   Keys and spacebar press straight down from their own center. The carriage-return
+   lever swings around the pivot where it meets the carriage (the bottom-right of its
+   bounding box). The carriage group translates horizontally to simulate paper advance. */
+.typer-key,
+.typer-space {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.typer-lever {
+  transform-box: fill-box;
+  transform-origin: 100% 0%;
+}
+
+/* SVG text classes for the detailed typewriter illustration. Scoped under
+   .typer-svg so they don't bleed into the rest of the app. */
+.typer-svg .key-text {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 20px;
+  font-weight: 900;
+  fill: black;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+/* Multi-glyph labels (currently only "fn") rendered smaller so they fit a 1u key. */
+.typer-svg .key-text-small {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 14px;
+  font-weight: 900;
+  fill: black;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+.typer-svg .brand-text {
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 32px;
+  font-style: italic;
+  font-weight: bold;
+  fill: black;
+  text-anchor: middle;
+  letter-spacing: 6px;
+}
+.typer-svg .sub-brand {
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 12px;
+  font-weight: bold;
+  fill: black;
+  text-anchor: middle;
+  letter-spacing: 4px;
+}
+.typer-carriage {
+  transition: transform 80ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* --- Typer SVG dark-mode inversion ---
+   The SVG has many hardcoded `fill="white"` / `stroke="black"` / `fill="black"`
+   presentation attributes. CSS rules override presentation attributes, so we
+   flip them globally when an ancestor has the `.dark` class. The four named
+   text classes carry `fill: black` from their selectors above, so they need
+   explicit overrides too. */
+.dark .typer-svg [fill="white"] { fill: #000; }
+.dark .typer-svg [fill="black"] { fill: #fff; }
+.dark .typer-svg [stroke="black"] { stroke: #fff; }
+.dark .typer-svg .key-text,
+.dark .typer-svg .key-text-small,
+.dark .typer-svg .brand-text,
+.dark .typer-svg .sub-brand { fill: #fff; }
+
+/* --- Markdown body — black/white serif, mono inline/block code. ---
+   Sub-element sizes use `em` so the entire .md-body scales together when
+   its container changes font-size (used by the reader font-size buttons). */
+.md-body {
+  font-family: var(--font-serif);
+  font-size: 1.0625em;
+  line-height: 1.7;
+  color: inherit;
+}
+.md-body h1,
+.md-body h2,
+.md-body h3,
+.md-body h4,
+.md-body h5,
+.md-body h6 {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  line-height: 1.25;
+  margin: 1.6em 0 0.5em;
+  color: inherit;
+}
+.md-body h1 { font-size: 2em; border-bottom: 2px solid currentColor; padding-bottom: 0.3em; }
+.md-body h2 { font-size: 1.6em; border-bottom: 1px solid currentColor; padding-bottom: 0.2em; }
+.md-body h3 { font-size: 1.3em; }
+.md-body h4 { font-size: 1.1em; }
+.md-body h5,
+.md-body h6 { font-size: 1em; text-transform: uppercase; letter-spacing: 0.08em; }
+.md-body p { margin: 0.8em 0; }
+.md-body ul,
+.md-body ol { margin: 0.8em 0; padding-left: 1.6em; }
+.md-body li { margin: 0.25em 0; }
+.md-body ul { list-style: square; }
+.md-body ol { list-style: decimal; }
+.md-body blockquote {
+  border-left: 3px solid currentColor;
+  padding: 0.2em 1em;
+  margin: 1em 0;
+  font-style: italic;
+  color: inherit;
+}
+.md-body code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: currentColor;
+  color: var(--reader-bg, #fff);
+  padding: 0.05em 0.35em;
+  border-radius: 2px;
+}
+.md-body code::selection { background: currentColor; color: var(--reader-bg, #fff); }
+.md-body pre {
+  background: currentColor;
+  color: var(--reader-bg, #fff);
+  padding: 1em 1.2em;
+  margin: 1em 0;
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  line-height: 1.5;
+  overflow-x: auto;
+}
+.md-body pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  border-radius: 0;
+}
+.md-body a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.md-body strong { font-weight: 700; }
+.md-body em { font-style: italic; }
+.md-body hr {
+  border: 0;
+  border-top: 1px solid currentColor;
+  margin: 2em 0;
+}
+.md-body img {
+  max-width: 100%;
+  filter: grayscale(1) contrast(1.05);
+  margin: 1em 0;
+}
+.md-body table {
+  border-collapse: collapse;
+  margin: 1em 0;
+  width: 100%;
+}
+.md-body th,
+.md-body td {
+  border: 1px solid currentColor;
+  padding: 0.4em 0.7em;
+  text-align: left;
+}
+.md-body th { font-weight: 700; background: currentColor; color: var(--reader-bg, #fff); }
+.md-body input[type="checkbox"] {
+  appearance: none;
+  width: 0.9em;
+  height: 0.9em;
+  border: 1.5px solid currentColor;
+  margin-right: 0.4em;
+  vertical-align: -2px;
+}
+.md-body input[type="checkbox"]:checked {
+  background: currentColor;
+}
+
+/* --- Reader dark mode: expose --reader-bg so the inverted .md-body elements
+   (pre / th / code) flip to white-on-black inversion when on a black page. --- */
+.reader-dark {
+  --reader-bg: #000;
+}
+
+/* `==highlight==` markdown extension renders as <mark>. In strict B/W,
+   light mode = black box around inverted text; dark mode = white box.
+   Currentcolor + --reader-bg keeps it consistent with the rest of .md-body. */
+.md-body mark {
+  background: currentColor;
+  color: var(--reader-bg, #fff);
+  padding: 0.05em 0.25em;
+  border-radius: 1px;
+  font-weight: 600;
+}
+
+/* KaTeX inherits surrounding text color so equations render white in dark
+   mode without us shipping a custom dark stylesheet. */
+.md-body .katex,
+.md-body .katex * {
+  color: currentColor;
+}
+.md-body .katex-display {
+  margin: 1em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* --- Slot machine: winning reel pulse ---
+   When a reel is part of a winning combination, briefly pulse the scale
+   to draw the eye. Color stays B/W; only the icon inside the reel
+   reveals to color (handled by RewardIcon variant). */
+@keyframes slot-win-pulse {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+.slot-reel-win {
+  animation: slot-win-pulse 600ms ease-out;
+}
+
+/* During spinning the reel icon cycles fast — apply a tiny vertical
+   wobble to suggest motion without doing a full strip animation. */
+@keyframes slot-reel-cycle {
+  0% { transform: translateY(-2px); }
+  50% { transform: translateY(2px); }
+  100% { transform: translateY(-2px); }
+}
+.slot-reel-spinning .slot-reel-icon {
+  animation: slot-reel-cycle 160ms ease-in-out infinite;
+}
+

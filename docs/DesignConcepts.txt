@@ -1,0 +1,60 @@
+App Name Concept: "Triptych" (or "LitCraft")
+
+Core Philosophy: A sanctuary for the written word. It acknowledges that reading, writing, and editing require completely different mindsets and UI paradigms.
+Theme: Absolute Minimalist. Pure white background (#FFFFFF), pure black text (#000000), sharp 1px black borders. No grays, no colors, no distractions.
+
+Figure 1: The "Reading Table" (Read Mode)
+
+Concept: Emulates the peaceful, passive experience of an e-reader or a physical book.
+
+Typography: Beautiful, highly legible Serif font (e.g., Georgia or Garamond).
+
+Layout: Centered, narrow column to reduce eye strain, or a two-page spread on wider screens.
+
+UI Elements: Invisible until hovered. A subtle progress indicator at the bottom.
+
+Actions: Import (.epub, .mobi, .pdf), Bookmark, Table of Contents.
+
+Figure 2: The "Typer" (Write Mode)
+
+Concept: The raw, forward-momentum environment of a mechanical typewriter.
+
+Typography: Strict Monospace font (Courier New or similar).
+
+Layout: A single "sheet of paper" running down the center of the screen.
+
+Visual Anchor: A minimalist, pure black-and-white geometric illustration of a typewriter sits at the bottom of the screen, anchoring the text area as if the words are feeding directly out of the platen.
+
+Interactions: The text cursor is the only moving part. No complex formatting toolbars (no bold/italics menus floating around). The focus is entirely on drafting and getting words out of your head and onto the page.
+
+Audio/Visual (Future feature): Subtle visual feedback on keystrokes, mimicking the impact of a typewriter hammer on paper.
+
+Figure 3: The "Magnifier" (Edit Mode)
+
+Concept: A tactical, overhead view of the manuscript for structural editing and "chopping."
+
+Typography: Clean Sans-Serif for the UI, mixed with Serif for the manuscript text to differentiate structure from content.
+
+Layout: A dual-pane "Surgeon's Table."
+
+Left Pane (The Block): The raw, imported manuscript (the heavy .epub or .txt).
+
+Right Pane (The Slices): An empty tray to place your chopped chapters.
+
+The "Chop" Interaction: The user highlights a massive chunk of text in the left pane, clicks a "Scissors" or "Extract" tool, and that text is snipped out and placed as a distinct, lightweight "Chapter Card" in the right pane. These cards can then be exported individually.
+
+Figure 4: The "Archiver" (Library Mode)
+
+Concept: A technical, terminal-style volume manager for organizing and visualizing your local literary assets.
+
+Typography: Strict Monospace font to evoke a command-line interface and technical precision.
+
+Layout: A split-screen dashboard.
+
+Left Pane (Volume Manager): Controls for connecting and managing the root directory.
+
+Right Pane (Visualizer): A wide canvas displaying the file tree and exact system paths.
+
+Interactions: Utilizes the modern File System Access API to safely request access to a local folder on the user's machine without uploading files to a server.
+
+Visualization: Displays the contents of the linked local folder (classics in .epub, drafts in .txt, research in .pdf) as a clean, branching ASCII-style directory tree. This brings immediate visual order to a chaotic local file system.

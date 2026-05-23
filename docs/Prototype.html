@@ -1,0 +1,449 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { 
+  BookOpen, 
+  Type, 
+  Scissors, 
+  ZoomIn, 
+  Upload, 
+  Download, 
+  ChevronLeft, 
+  ChevronRight,
+  FileText,
+  Archive,
+  Folder,
+  HardDrive
+} from 'lucide-react';
+
+export default function App() {
+  const [activeTab, setActiveTab] = useState('read'); // 'read', 'write', 'edit', 'archive'
+
+  return (
+    <div className="min-h-screen bg-white text-black font-sans selection:bg-black selection:text-white flex flex-col">
+      {/* Top Navigation */}
+      <header className="flex justify-between items-center p-4 border-b border-black">
+        <div className="font-serif text-2xl font-bold tracking-tighter uppercase">
+          Triptych
+        </div>
+        <nav className="flex space-x-0 border border-black rounded-sm overflow-hidden">
+          <NavButton 
+            icon={<BookOpen size={18} />} 
+            label="Reading Table" 
+            isActive={activeTab === 'read'} 
+            onClick={() => setActiveTab('read')} 
+          />
+          <div className="w-px bg-black"></div>
+          <NavButton 
+            icon={<Type size={18} />} 
+            label="Typer" 
+            isActive={activeTab === 'write'} 
+            onClick={() => setActiveTab('write')} 
+          />
+          <div className="w-px bg-black"></div>
+          <NavButton 
+            icon={<ZoomIn size={18} />} 
+            label="Magnifier" 
+            isActive={activeTab === 'edit'} 
+            onClick={() => setActiveTab('edit')} 
+          />
+          <div className="w-px bg-black"></div>
+          <NavButton 
+            icon={<Archive size={18} />} 
+            label="Archiver" 
+            isActive={activeTab === 'archive'} 
+            onClick={() => setActiveTab('archive')} 
+          />
+        </nav>
+        <div className="text-sm font-mono uppercase tracking-widest flex items-center gap-2 cursor-pointer hover:underline">
+          <Upload size={16} /> Import
+        </div>
+      </header>
+
+      {/* Main Content Area */}
+      <main className="flex-grow flex flex-col relative overflow-hidden">
+        {activeTab === 'read' && <ReadingTable />}
+        {activeTab === 'write' && <Typer />}
+        {activeTab === 'edit' && <Magnifier />}
+        {activeTab === 'archive' && <Archiver />}
+      </main>
+    </div>
+  );
+}
+
+// --- Navigation Button ---
+function NavButton({ icon, label, isActive, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center space-x-2 px-6 py-2 text-sm font-semibold uppercase tracking-wider transition-colors duration-200 
+        ${isActive ? 'bg-black text-white' : 'bg-white text-black hover:bg-gray-100'}`}
+    >
+      {icon}
+      <span>{label}</span>
+    </button>
+  );
+}
+
+// --- MODE 1: Reading Table ---
+function ReadingTable() {
+  const [page, setPage] = useState(1);
+  const totalPages = 324;
+
+  const mockText = `Call me Ishmael. Some years ago—never mind how long precisely—having little or no money in my purse, and nothing particular to interest me on shore, I thought I would sail about a little and see the watery part of the world. It is a way I have of driving off the spleen and regulating the circulation. 
+
+Whenever I find myself growing grim about the mouth; whenever it is a damp, drizzly November in my soul; whenever I find myself involuntarily pausing before coffin warehouses, and bringing up the rear of every funeral I meet; and especially whenever my hypos get such an upper hand of me, that it requires a strong moral principle to prevent me from deliberately stepping into the street, and methodically knocking people's hats off—then, I account it high time to get to sea as soon as I can. 
+
+This is my substitute for pistol and ball. With a philosophical flourish Cato throws himself upon his sword; I quietly take to the ship. There is nothing surprising in this. If they but knew it, almost all men in their degree, some time or other, cherish very nearly the same feelings towards the ocean with me.`;
+
+  return (
+    <div className="flex-grow flex flex-col justify-center items-center p-8 bg-white">
+      <div className="max-w-2xl w-full h-full flex flex-col">
+        {/* Book Header */}
+        <div className="text-center font-serif text-sm uppercase tracking-[0.3em] mb-12 border-b border-black pb-4">
+          Chapter I. Loomings.
+        </div>
+        
+        {/* Book Content */}
+        <div className="font-serif text-xl leading-loose text-justify flex-grow">
+          {mockText}
+        </div>
+
+        {/* Footer / Pagination */}
+        <div className="flex justify-between items-center mt-12 pt-4 border-t border-black font-mono text-sm">
+          <button 
+            onClick={() => setPage(Math.max(1, page - 1))}
+            className="flex items-center gap-1 hover:underline p-2"
+          >
+            <ChevronLeft size={16} /> Prev
+          </button>
+          <span>Page {page} / {totalPages}</span>
+          <button 
+            onClick={() => setPage(Math.min(totalPages, page + 1))}
+            className="flex items-center gap-1 hover:underline p-2"
+          >
+            Next <ChevronRight size={16} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- MODE 2: Typer ---
+function Typer() {
+  const [text, setText] = useState('');
+  const textareaRef = useRef(null);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, []);
+
+  return (
+    <div className="flex-grow flex flex-col items-center p-8 bg-white overflow-hidden relative">
+      <div className="w-full max-w-3xl flex-grow flex flex-col relative z-10">
+        <div className="flex justify-between items-end mb-4 border-b-4 border-black pb-2">
+          <span className="font-mono uppercase font-bold tracking-widest text-xl">Draft _</span>
+          <span className="font-mono text-sm">Words: {text.split(/\s+/).filter(w => w.length > 0).length}</span>
+        </div>
+        
+        <textarea
+          ref={textareaRef}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Start typing..."
+          className="flex-grow w-full resize-none outline-none font-mono text-lg leading-relaxed bg-transparent placeholder-black/30 mb-4"
+          spellCheck="false"
+        />
+      </div>
+
+      {/* Typewriter Illustration (Bottom 1/4) */}
+      <div className="w-full h-1/4 max-h-[25vh] min-h-[150px] flex justify-center items-end opacity-90 pointer-events-none">
+        <svg viewBox="0 0 400 200" className="h-full text-black">
+          {/* Paper feed (stylized to connect conceptually with the textarea above) */}
+          <path d="M100,50 L100,0 L300,0 L300,50" fill="none" stroke="currentColor" strokeWidth="4"/>
+          
+          {/* Platen (Cylinder) */}
+          <rect x="70" y="50" width="260" height="24" rx="12" fill="none" stroke="currentColor" strokeWidth="4"/>
+          <line x1="70" y1="62" x2="330" y2="62" stroke="currentColor" strokeWidth="2" opacity="0.3"/>
+          
+          {/* Knobs */}
+          <path d="M70,62 L50,62 M330,62 L350,62" stroke="currentColor" strokeWidth="4" strokeLinecap="round"/>
+          <circle cx="50" cy="62" r="10" fill="currentColor"/>
+          <circle cx="350" cy="62" r="10" fill="currentColor"/>
+          
+          {/* Carriage Return Lever */}
+          <path d="M60,50 L40,20 L20,20" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+          
+          {/* Body base */}
+          <path d="M40,85 L360,85 L390,190 L10,190 Z" fill="none" stroke="currentColor" strokeWidth="4" strokeLinejoin="round"/>
+          
+          {/* Inner keyboard well */}
+          <path d="M60,100 L340,100 L360,170 L40,170 Z" fill="none" stroke="currentColor" strokeWidth="2" opacity="0.5"/>
+          
+          {/* Keys (Geometric abstraction) */}
+          <g fill="currentColor">
+            {/* Row 1 */}
+            <circle cx="90" cy="115" r="5" />
+            <circle cx="120" cy="115" r="5" />
+            <circle cx="150" cy="115" r="5" />
+            <circle cx="180" cy="115" r="5" />
+            <circle cx="210" cy="115" r="5" />
+            <circle cx="240" cy="115" r="5" />
+            <circle cx="270" cy="115" r="5" />
+            <circle cx="300" cy="115" r="5" />
+            <circle cx="330" cy="115" r="5" />
+            
+            {/* Row 2 */}
+            <circle cx="105" cy="135" r="5" />
+            <circle cx="135" cy="135" r="5" />
+            <circle cx="165" cy="135" r="5" />
+            <circle cx="195" cy="135" r="5" />
+            <circle cx="225" cy="135" r="5" />
+            <circle cx="255" cy="135" r="5" />
+            <circle cx="285" cy="135" r="5" />
+            <circle cx="315" cy="135" r="5" />
+            
+            {/* Row 3 */}
+            <circle cx="120" cy="155" r="5" />
+            <circle cx="150" cy="155" r="5" />
+            <circle cx="180" cy="155" r="5" />
+            <circle cx="210" cy="155" r="5" />
+            <circle cx="240" cy="155" r="5" />
+            <circle cx="270" cy="155" r="5" />
+            <circle cx="300" cy="155" r="5" />
+            
+            {/* Spacebar */}
+            <rect x="130" y="175" width="140" height="8" rx="4" />
+          </g>
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+// --- MODE 3: Magnifier (Edit / Chop) ---
+function Magnifier() {
+  const [chapters, setChapters] = useState([]);
+  const [sourceText, setSourceText] = useState(
+    "VOLUME I.\n\nCHAPTER I.\n\nIt is a truth universally acknowledged, that a single man in possession of a good fortune, must be in want of a wife.\n\nHowever little known the feelings or views of such a man may be on his first entering a neighbourhood, this truth is so well fixed in the minds of the surrounding families, that he is considered the rightful property of some one or other of their daughters.\n\nCHAPTER II.\n\nMr. Bennet was among the earliest of those who waited on Mr. Bingley. He had always intended to visit him, though to the last always assuring his wife that he should not go; and till the evening after the visit was paid she had no knowledge of it."
+  );
+
+  const handleChop = () => {
+    const selection = window.getSelection().toString();
+    if (!selection) return;
+
+    // Create a new chapter
+    const newChapter = {
+      id: Date.now(),
+      title: `Fragment ${chapters.length + 1}`,
+      content: selection
+    };
+
+    setChapters([...chapters, newChapter]);
+  };
+
+  return (
+    <div className="flex-grow flex h-full overflow-hidden">
+      {/* Left Pane: The Source Block */}
+      <div className="w-1/2 flex flex-col border-r border-black">
+        <div className="p-4 bg-black text-white font-mono uppercase text-sm tracking-widest flex justify-between items-center">
+          <span>Source Text (.epub)</span>
+          <button 
+            onClick={handleChop}
+            className="flex items-center gap-2 border border-white px-3 py-1 hover:bg-white hover:text-black transition-colors"
+            title="Highlight text below and click to Extract"
+          >
+            <Scissors size={14} /> Extract Selection
+          </button>
+        </div>
+        <div className="p-8 overflow-y-auto flex-grow font-serif text-lg leading-relaxed whitespace-pre-wrap">
+          {sourceText}
+        </div>
+      </div>
+
+      {/* Right Pane: The Sliced Chapters */}
+      <div className="w-1/2 flex flex-col bg-white">
+        <div className="p-4 border-b border-black font-mono uppercase text-sm tracking-widest flex justify-between items-center">
+          <span>Extracted Parts ({chapters.length})</span>
+          <button className="flex items-center gap-2 hover:underline">
+             <Download size={14} /> Export All
+          </button>
+        </div>
+        
+        <div className="p-8 overflow-y-auto flex-grow space-y-6 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjZmZmIi8+CjxyZWN0IHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGZpbGw9IiNlZWVlZWUiLz4KPC9zdmc+')]">
+          {chapters.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center text-center font-mono text-black/50 border-2 border-dashed border-black/20 p-8">
+              <ZoomIn size={48} className="mb-4 opacity-50" />
+              <p>Highlight text in the left pane and click "Extract Selection" to chop the document into light-weight parts.</p>
+            </div>
+          ) : (
+            chapters.map((chap) => (
+              <div key={chap.id} className="border border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                <div className="border-b border-black p-2 bg-black text-white font-mono text-xs flex justify-between items-center">
+                  <input 
+                    type="text" 
+                    defaultValue={chap.title} 
+                    className="bg-transparent text-white outline-none border-none focus:border-b focus:border-white"
+                  />
+                  <FileText size={14} />
+                </div>
+                <div className="p-4 font-serif text-sm leading-relaxed max-h-40 overflow-hidden relative">
+                  {chap.content}
+                  <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-white to-transparent"></div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- MODE 4: Archiver ---
+function Archiver() {
+  // We use mock data initially to demonstrate the UI concept, 
+  // as browser security prevents arbitrary local folder access without user interaction.
+  const mockFileSystem = [
+    {
+      name: "Triptych_Library", type: "directory", children: [
+        {
+          name: "Classics", type: "directory", children: [
+            { name: "Moby_Dick.epub", type: "file" },
+            { name: "Pride_and_Prejudice.pdf", type: "file" },
+            { name: "Frankenstein.mobi", type: "file" }
+          ]
+        },
+        {
+          name: "My_Drafts", type: "directory", children: [
+            { name: "Novel_Outline_v3.txt", type: "file" },
+            { name: "Chapter_1_Raw.txt", type: "file" },
+            {
+              name: "Research", type: "directory", children: [
+                { name: "whaling_history.pdf", type: "file" }
+              ]
+            }
+          ]
+        },
+        { name: "reading_log.txt", type: "file" }
+      ]
+    }
+  ];
+
+  const [fileSystem, setFileSystem] = useState(mockFileSystem);
+  const [currentPath, setCurrentPath] = useState("MockDrive://Triptych_Library");
+  const [error, setError] = useState(null);
+
+  // Uses the modern File System Access API
+  const handleConnectLocalFolder = async () => {
+    try {
+      if (!window.showDirectoryPicker) {
+        throw new Error("Your browser does not support the File System Access API.");
+      }
+      
+      const dirHandle = await window.showDirectoryPicker();
+      setCurrentPath(`LocalDrive://${dirHandle.name}`);
+      
+      // Basic 2-level deep scan for demonstration
+      const tree = await scanDirectory(dirHandle, 2);
+      setFileSystem([tree]);
+      setError(null);
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        setError(err.message || "Could not access local folder due to browser security restrictions in the preview environment.");
+      }
+    }
+  };
+
+  const scanDirectory = async (dirHandle, depth) => {
+    const entry = { name: dirHandle.name, type: 'directory', children: [] };
+    if (depth === 0) return entry;
+
+    for await (const [name, handle] of dirHandle.entries()) {
+      if (handle.kind === 'directory') {
+        entry.children.push(await scanDirectory(handle, depth - 1));
+      } else {
+        entry.children.push({ name, type: 'file' });
+      }
+    }
+    
+    // Sort directories first, then files alphabetically
+    entry.children.sort((a, b) => {
+      if (a.type === b.type) return a.name.localeCompare(b.name);
+      return a.type === 'directory' ? -1 : 1;
+    });
+    
+    return entry;
+  };
+
+  const renderTree = (nodes, depth = 0) => {
+    return nodes.map((node, index) => (
+      <div key={`${node.name}-${index}`} className="font-mono">
+        <div 
+          className="flex items-center gap-2 py-1 hover:bg-black hover:text-white transition-colors cursor-pointer"
+          style={{ paddingLeft: `${depth * 1.5}rem` }}
+        >
+          {/* Tree branching visual */}
+          <span className="text-gray-400 select-none">
+            {depth > 0 && (index === nodes.length - 1 ? '└──' : '├──')}
+          </span>
+          
+          {node.type === 'directory' ? (
+            <Folder size={16} className="shrink-0" />
+          ) : (
+            <FileText size={16} className="shrink-0" />
+          )}
+          <span className={`${node.type === 'directory' ? 'font-bold uppercase tracking-wider text-xs' : 'text-sm'}`}>
+            {node.name}
+          </span>
+        </div>
+        {node.children && renderTree(node.children, depth + 1)}
+      </div>
+    ));
+  };
+
+  return (
+    <div className="flex-grow flex h-full overflow-hidden bg-white">
+      {/* Left Sidebar: Controls */}
+      <div className="w-1/3 border-r border-black flex flex-col">
+        <div className="p-4 bg-black text-white font-mono uppercase text-sm tracking-widest flex items-center gap-2">
+          <HardDrive size={16} /> Volume Manager
+        </div>
+        <div className="p-8 flex flex-col gap-6">
+          <p className="font-serif text-sm leading-relaxed">
+            Link a local folder to seamlessly access your .epub, .mobi, .pdf, and raw text drafts directly within Triptych.
+          </p>
+          <button 
+            onClick={handleConnectLocalFolder}
+            className="w-full border-2 border-black py-3 font-mono uppercase tracking-widest text-sm font-bold hover:bg-black hover:text-white transition-all flex items-center justify-center gap-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none"
+          >
+            <Folder size={18} /> Connect Local Folder
+          </button>
+          
+          {error && (
+            <div className="p-4 border border-black font-mono text-xs text-black/70 bg-gray-50">
+              <span className="font-bold text-black block mb-1">Notice:</span>
+              {error} Showing mock data instead.
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Right Area: File Visualizer */}
+      <div className="w-2/3 flex flex-col bg-white">
+        {/* Terminal Header */}
+        <div className="p-4 border-b border-black font-mono text-sm tracking-widest flex justify-between items-center bg-gray-50">
+          <span>PATH: {currentPath}</span>
+        </div>
+        
+        {/* Terminal Body */}
+        <div className="p-8 overflow-y-auto flex-grow bg-white selection:bg-black selection:text-white">
+          <div className="border border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] min-h-full">
+             {renderTree(fileSystem)}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

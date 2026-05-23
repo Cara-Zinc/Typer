@@ -1,0 +1,100 @@
+# ---------------------------------------------------------------------------
+# Node / Vite (frontend)
+# ---------------------------------------------------------------------------
+node_modules/
+dist/
+dist-ssr/
+build/
+.vite/
+*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Type-check / bundler caches
+*.tsbuildinfo
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+
+# Env files (never commit secrets)
+.env
+.env.*
+!.env.example
+
+# ---------------------------------------------------------------------------
+# Tauri / Rust (src-tauri)
+# ---------------------------------------------------------------------------
+src-tauri/target/
+src-tauri/gen/schemas/
+src-tauri/WixTools/
+src-tauri/.cargo/
+**/*.rs.bk
+
+# Tauri build artifacts that land outside target/
+src-tauri/bundle/
+
+# ---------------------------------------------------------------------------
+# Editors / IDEs
+# ---------------------------------------------------------------------------
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swp
+*.swo
+
+# JetBrains / Fleet / Zed local state
+.fleet/
+.zed/
+
+# ---------------------------------------------------------------------------
+# macOS
+# ---------------------------------------------------------------------------
+.DS_Store
+.DS_Store?
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+.fseventsd
+.DocumentRevisions-V100
+.TemporaryItems
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+Icon?
+
+# Files that might appear on a network share / external drive
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# ---------------------------------------------------------------------------
+# Windows / Linux (other contributors' machines)
+# ---------------------------------------------------------------------------
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.stackdump
+
+# ---------------------------------------------------------------------------
+# Project-local notes / scratch (uncomment if you keep these untracked)
+# ---------------------------------------------------------------------------
+# TODO.txt
+# scratch/
