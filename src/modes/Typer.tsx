@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 // --- Keyboard layout ---
 // Five rows, all uniform circle keys (matches the typewriter aesthetic).
@@ -313,7 +313,7 @@ export function Typer() {
     }
   };
 
-  const wordCount = text.split(/\s+/).filter((w) => w.length > 0).length;
+  const wordCount = useMemo(() => text.match(/\S+/g)?.length || 0, [text]);
 
   // Each row is centered horizontally so visually unequal-length rows still
   // sit balanced under the typebar basket.
@@ -622,7 +622,7 @@ export function Typer() {
           </g>
 
           {/* Keyboard rows */}
-          {ROWS.map((row) => renderRow(row))}
+          {useMemo(() => ROWS.map((row) => renderRow(row)), [])}
 
           {/* Front lip (Now perfectly orthogonal as well) */}
           <rect
