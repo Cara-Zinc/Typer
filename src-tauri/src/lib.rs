@@ -21,6 +21,7 @@ fn convert_doc(path: String) -> Result<String, String> {
         .arg("-convert")
         .arg("html")
         .arg("-stdout")
+        .arg("--")
         .arg(&path)
         .output()
         .map_err(|e| format!("Failed to run textutil: {}", e))?;
