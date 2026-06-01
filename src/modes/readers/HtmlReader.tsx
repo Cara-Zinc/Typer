@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import DOMPurify from "dompurify";
 import { ReaderShell, type ReaderTheme, type SplitMode } from "./ReaderShell";
 
 type Props = {
@@ -77,7 +78,7 @@ export function HtmlReader({
       >
         <div
           className="md-body max-w-3xl mx-auto"
-          dangerouslySetInnerHTML={{ __html: html }}
+          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(html) }}
         />
       </div>
     </ReaderShell>
