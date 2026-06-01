@@ -3,13 +3,7 @@ import { RewardIcon } from "../../components/RewardIcon";
 import { useInventory } from "../../state/InventoryContext";
 import { findReward, type RewardDef } from "./rewards";
 import type { InventoryRow } from "../../state/inventory";
-
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  const pad = (n: number) => n.toString().padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
+import { formatDate } from "../../utils/date";
 
 function RedeemedTile({
   reward,
