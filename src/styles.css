@@ -172,6 +172,10 @@ body:has(.dark) {
    Sub-element sizes use `em` so the entire .md-body scales together when
    its container changes font-size (used by the reader font-size buttons). */
 .md-body {
+  --reader-bg: #fff;
+  --reader-fg: #000;
+  --reader-code-bg: #f0f0f0;
+  --reader-code-border: #d4d4d4;
   font-family: var(--font-serif);
   font-size: 1.0625em;
   line-height: 1.7;
@@ -201,6 +205,14 @@ body:has(.dark) {
 .md-body li { margin: 0.25em 0; }
 .md-body ul { list-style: square; }
 .md-body ol { list-style: decimal; }
+.md-body .contains-task-list {
+  list-style: none;
+  padding-left: 1.2em;
+}
+.md-body .task-list-item {
+  list-style: none;
+  margin-left: -1.2em;
+}
 .md-body blockquote {
   border-left: 3px solid currentColor;
   padding: 0.2em 1em;
@@ -211,15 +223,17 @@ body:has(.dark) {
 .md-body code {
   font-family: var(--font-mono);
   font-size: 0.85em;
-  background: currentColor;
-  color: var(--reader-bg, #fff);
+  background: var(--reader-code-bg);
+  color: var(--reader-fg);
+  border: 1px solid var(--reader-code-border);
   padding: 0.05em 0.35em;
   border-radius: 2px;
 }
-.md-body code::selection { background: currentColor; color: var(--reader-bg, #fff); }
+.md-body code::selection { background: var(--reader-fg); color: var(--reader-bg); }
 .md-body pre {
-  background: currentColor;
-  color: var(--reader-bg, #fff);
+  background: var(--reader-code-bg);
+  color: var(--reader-fg);
+  border: 1px solid var(--reader-code-border);
   padding: 1em 1.2em;
   margin: 1em 0;
   font-family: var(--font-mono);
@@ -230,6 +244,7 @@ body:has(.dark) {
 .md-body pre code {
   background: transparent;
   color: inherit;
+  border: 0;
   padding: 0;
   border-radius: 0;
 }
@@ -240,6 +255,10 @@ body:has(.dark) {
 }
 .md-body strong { font-weight: 700; }
 .md-body em { font-style: italic; }
+.md-body u {
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.16em;
+}
 .md-body hr {
   border: 0;
   border-top: 1px solid currentColor;
@@ -255,13 +274,33 @@ body:has(.dark) {
   margin: 1em 0;
   width: 100%;
 }
+.md-reader-column {
+  width: min(34vw, 44rem);
+  min-width: min(100%, 28rem);
+  max-width: 100%;
+  overflow-x: auto;
+}
+.md-reader-column-split {
+  width: 100%;
+  max-width: 42rem;
+  overflow-x: auto;
+}
+.md-body-wide table {
+  min-width: max-content;
+}
+.markdown-live-block {
+  border: 1px solid transparent;
+}
+.markdown-live-block:hover {
+  border-color: color-mix(in srgb, currentColor 25%, transparent);
+}
 .md-body th,
 .md-body td {
   border: 1px solid currentColor;
   padding: 0.4em 0.7em;
   text-align: left;
 }
-.md-body th { font-weight: 700; background: currentColor; color: var(--reader-bg, #fff); }
+.md-body th { font-weight: 700; background: var(--reader-fg); color: var(--reader-bg); }
 .md-body input[type="checkbox"] {
   appearance: none;
   width: 0.9em;
@@ -269,23 +308,30 @@ body:has(.dark) {
   border: 1.5px solid currentColor;
   margin-right: 0.4em;
   vertical-align: -2px;
+  cursor: pointer;
+}
+.md-body input[type="checkbox"]:disabled {
+  cursor: default;
 }
 .md-body input[type="checkbox"]:checked {
   background: currentColor;
 }
 
-/* --- Reader dark mode: expose --reader-bg so the inverted .md-body elements
-   (pre / th / code) flip to white-on-black inversion when on a black page. --- */
+/* --- Reader dark mode: flip inverted .md-body elements
+   and soften code surfaces against the black page. --- */
 .reader-dark {
   --reader-bg: #000;
+  --reader-fg: #fff;
+  --reader-code-bg: #1f1f1f;
+  --reader-code-border: #3a3a3a;
 }
 
 /* `==highlight==` markdown extension renders as <mark>. In strict B/W,
    light mode = black box around inverted text; dark mode = white box.
-   Currentcolor + --reader-bg keeps it consistent with the rest of .md-body. */
+   The explicit reader variables avoid currentColor following the inverted text. */
 .md-body mark {
-  background: currentColor;
-  color: var(--reader-bg, #fff);
+  background: var(--reader-fg);
+  color: var(--reader-bg);
   padding: 0.05em 0.25em;
   border-radius: 1px;
   font-weight: 600;
@@ -301,6 +347,42 @@ body:has(.dark) {
   margin: 1em 0;
   overflow-x: auto;
   overflow-y: hidden;
+}
+
+/* --- PDF reader text + annotation overlays --- */
+.pdf-text-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  line-height: 1;
+  text-align: initial;
+  text-size-adjust: none;
+  forced-color-adjust: none;
+  transform-origin: 0 0;
+  z-index: 2;
+}
+.pdf-text-layer span,
+.pdf-text-layer br {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0 0;
+}
+.pdf-text-layer ::selection {
+  background: rgba(128, 128, 128, 0.35);
+}
+.pdf-annotation-highlight,
+.pdf-annotation-underline {
+  position: absolute;
+  z-index: 1;
+}
+.pdf-annotation-highlight {
+  background: rgba(128, 128, 128, 0.32);
+}
+.pdf-annotation-underline {
+  border-bottom: 2px solid currentColor;
+  opacity: 0.75;
 }
 
 /* --- Slot machine: winning reel pulse ---
@@ -326,4 +408,3 @@ body:has(.dark) {
 .slot-reel-spinning .slot-reel-icon {
   animation: slot-reel-cycle 160ms ease-in-out infinite;
 }
-

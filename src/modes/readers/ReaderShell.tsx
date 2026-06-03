@@ -1,5 +1,6 @@
-import { useEffect, useRef, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
 import {
+  BookMarked,
   BookOpen,
   ChevronLeft,
   ChevronRight,
@@ -36,6 +37,11 @@ type Props = {
   onThemeToggle: () => void;
   /** Continuous reading seconds for the currently open file (owned by parent). */
   readingSeconds: number;
+  status?: string;
+  toolbarExtra?: ReactNode;
+  annotationCount?: number;
+  annotationsPanel?: ReactNode;
+  hideSplitControl?: boolean;
   children: ReactNode;
 };
 
@@ -54,9 +60,15 @@ export function ReaderShell({
   theme,
   onThemeToggle,
   readingSeconds,
+  status,
+  toolbarExtra,
+  annotationCount = 0,
+  annotationsPanel,
+  hideSplitControl = false,
   children,
 }: Props) {
   const eyeStrain = readingSeconds >= 20 * 60; // ≥ 20 min → blink the timer as a gentle nudge.
+  const [showAnnotations, setShowAnnotations] = useState(false);
 
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -113,7 +125,29 @@ export function ReaderShell({
 
         <span className={`truncate flex-1 text-center ${subtle}`}>{location}</span>
 
+        {status && (
+          <span
+            className={`max-w-[16rem] truncate border px-2 py-0.5 text-[0.6rem] tracking-widest ${border} ${subtle}`}
+            title={status}
+          >
+            {status}
+          </span>
+        )}
+
         <div className="flex items-center gap-3 shrink-0">
+          {toolbarExtra}
+
+          {annotationsPanel && (
+            <button
+              onClick={() => setShowAnnotations((v) => !v)}
+              className="hover:underline flex items-center gap-1"
+              title={showAnnotations ? "Hide annotations" : "Show annotations"}
+            >
+              <BookMarked size={14} />
+              {annotationCount}
+            </button>
+          )}
+
           <div
             className={`flex items-center gap-1 border px-1.5 py-0.5 ${border}`}
             title={`Font size · ${Math.round(fontScale * 100)}%`}
@@ -147,14 +181,16 @@ export function ReaderShell({
             {dark ? <Sun size={14} /> : <Moon size={14} />}
           </button>
 
-          <button
-            onClick={onSplitToggle}
-            className="hover:underline flex items-center gap-1"
-            title={split === 1 ? "Split into two panes" : "Close split"}
-          >
-            {split === 1 ? <Columns2 size={14} /> : <Square size={14} />}
-            {split === 1 ? "Split" : "Unsplit"}
-          </button>
+          {!hideSplitControl && (
+            <button
+              onClick={onSplitToggle}
+              className="hover:underline flex items-center gap-1"
+              title={split === 1 ? "Split into two panes" : "Close split"}
+            >
+              {split === 1 ? <Columns2 size={14} /> : <Square size={14} />}
+              {split === 1 ? "Split" : "Unsplit"}
+            </button>
+          )}
 
           <button onClick={onChange} className="hover:underline flex items-center gap-1">
             <BookOpen size={14} /> Change
@@ -162,7 +198,14 @@ export function ReaderShell({
         </div>
       </div>
 
-      <div className="grow relative min-h-0">{children}</div>
+      <div className="grow relative min-h-0">
+        {children}
+        {annotationsPanel && showAnnotations && (
+          <aside className={`absolute top-0 right-0 bottom-0 w-80 border-l ${border} shadow-[-6px_0_0_rgba(0,0,0,0.08)] dark:shadow-[-6px_0_0_rgba(255,255,255,0.08)] z-30`}>
+            {annotationsPanel}
+          </aside>
+        )}
+      </div>
 
       <div
         className={`flex justify-between items-center px-6 py-3 border-t font-mono text-sm shrink-0 ${border}`}

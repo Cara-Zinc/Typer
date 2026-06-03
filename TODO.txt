@@ -1,5 +1,3 @@
-- Reader Tab: markdown MathJax support
-- Magnifier editor feature: per-chapter split and customized split
-- Magnifier editor feature: chapter tree for inner structure visualization
-- publish to github
-- Jules Code Review
+Superseded by TODO.md.
+
+Old inbox items have been folded into the Stabilize & Publish checklist.

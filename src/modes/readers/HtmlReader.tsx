@@ -15,6 +15,7 @@ type Props = {
   theme: ReaderTheme;
   onThemeToggle: () => void;
   readingSeconds: number;
+  readerStatus?: string;
 };
 
 export function HtmlReader({
@@ -30,6 +31,7 @@ export function HtmlReader({
   theme,
   onThemeToggle,
   readingSeconds,
+  readerStatus,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [progress, setProgress] = useState(0);
@@ -70,6 +72,7 @@ export function HtmlReader({
       theme={theme}
       onThemeToggle={onThemeToggle}
       readingSeconds={readingSeconds}
+      status={readerStatus}
     >
       <div
         ref={scrollRef}
