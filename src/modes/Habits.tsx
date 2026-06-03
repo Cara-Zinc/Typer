@@ -1,3 +1,8 @@
+// Habits.tsx — Modified to add a "Pet" sub-tab after Redeemed.
+//
+// Diff vs upstream: one extra COLLECTION_TAB entry + one extra panel. All
+// other behaviour (sub-tab strip, mounted-with-hidden panels) is unchanged.
+
 import { useState } from "react";
 import { HelpCircle } from "lucide-react";
 import { useHabits } from "../state/HabitsContext";
@@ -7,25 +12,27 @@ import { Owned } from "./habits/Owned";
 import { Redeemed } from "./habits/Redeemed";
 import { SlotMachine } from "./habits/SlotMachine";
 import { HabitsHelp } from "./habits/HabitsHelp";
+import { PetFood } from "./habits/PetFood";
 
-type SubTab = "exchange" | "slot" | "shop" | "owned" | "redeemed";
+type SubTab = "exchange" | "slot" | "shop" | "owned" | "redeemed" | "pet";
 
 const TRANSACTION_TABS: { id: SubTab; label: string }[] = [
   { id: "exchange", label: "Exchange" },
-  { id: "slot", label: "Slot" },
-  { id: "shop", label: "Shop" },
+  { id: "slot",     label: "Slot" },
+  { id: "shop",     label: "Shop" },
 ];
 
 const COLLECTION_TABS: { id: SubTab; label: string }[] = [
-  { id: "owned", label: "Owned" },
+  { id: "owned",    label: "Owned" },
   { id: "redeemed", label: "Redeemed" },
 ];
 
+const PET_TABS: { id: SubTab; label: string }[] = [
+  { id: "pet", label: "Pet" },
+];
+
 function SubTabButton({
-  id,
-  label,
-  active,
-  onClick,
+  id, label, active, onClick,
 }: {
   id: SubTab;
   label: string;
@@ -53,37 +60,28 @@ export function Habits() {
 
   return (
     <div className="grow flex flex-col bg-white dark:bg-black text-black dark:text-white overflow-hidden">
-      {/* Sub-tab strip: transactions | collection ........ token counter */}
       <div className="flex items-stretch border-b border-black dark:border-white shrink-0">
         <div className="flex">
           {TRANSACTION_TABS.map((t) => (
-            <SubTabButton
-              key={t.id}
-              id={t.id}
-              label={t.label}
-              active={sub === t.id}
-              onClick={setSub}
-            />
+            <SubTabButton key={t.id} id={t.id} label={t.label} active={sub === t.id} onClick={setSub} />
           ))}
         </div>
         <div className="w-px bg-black dark:bg-white my-2 mx-3" />
         <div className="flex">
           {COLLECTION_TABS.map((t) => (
-            <SubTabButton
-              key={t.id}
-              id={t.id}
-              label={t.label}
-              active={sub === t.id}
-              onClick={setSub}
-            />
+            <SubTabButton key={t.id} id={t.id} label={t.label} active={sub === t.id} onClick={setSub} />
+          ))}
+        </div>
+        <div className="w-px bg-black dark:bg-white my-2 mx-3" />
+        <div className="flex">
+          {PET_TABS.map((t) => (
+            <SubTabButton key={t.id} id={t.id} label={t.label} active={sub === t.id} onClick={setSub} />
           ))}
         </div>
         <div className="grow" />
         <div className="flex items-center px-5 font-mono text-sm tracking-widest border-l border-black dark:border-white">
           <span className="opacity-50 mr-3 text-xs uppercase">Tokens</span>
-          <span className="font-bold tabular-nums">
-            {loaded ? tokens : "—"}
-          </span>
+          <span className="font-bold tabular-nums">{loaded ? tokens : "—"}</span>
         </div>
         <button
           type="button"
@@ -96,25 +94,14 @@ export function Habits() {
         </button>
       </div>
 
-      {/* Sub-tab content area. Panels stay mounted via display:none so their
-          per-tab state (form drafts, scroll position, in-flight slot spin,
-          etc.) survives switching. */}
+      {/* Sub-tab content — all mounted, hidden when inactive (same pattern as upstream). */}
       <div className="grow flex flex-col min-h-0 overflow-hidden relative">
-        <div className={`grow flex flex-col min-h-0 ${sub === "exchange" ? "" : "hidden"}`}>
-          <TokenExchange />
-        </div>
-        <div className={`grow flex flex-col min-h-0 ${sub === "shop" ? "" : "hidden"}`}>
-          <RewardShop />
-        </div>
-        <div className={`grow flex flex-col min-h-0 ${sub === "owned" ? "" : "hidden"}`}>
-          <Owned />
-        </div>
-        <div className={`grow flex flex-col min-h-0 ${sub === "redeemed" ? "" : "hidden"}`}>
-          <Redeemed />
-        </div>
-        <div className={`grow flex flex-col min-h-0 ${sub === "slot" ? "" : "hidden"}`}>
-          <SlotMachine />
-        </div>
+        <div className={`grow flex flex-col min-h-0 ${sub === "exchange" ? "" : "hidden"}`}><TokenExchange /></div>
+        <div className={`grow flex flex-col min-h-0 ${sub === "shop"     ? "" : "hidden"}`}><RewardShop /></div>
+        <div className={`grow flex flex-col min-h-0 ${sub === "owned"    ? "" : "hidden"}`}><Owned /></div>
+        <div className={`grow flex flex-col min-h-0 ${sub === "redeemed" ? "" : "hidden"}`}><Redeemed /></div>
+        <div className={`grow flex flex-col min-h-0 ${sub === "slot"     ? "" : "hidden"}`}><SlotMachine /></div>
+        <div className={`grow flex flex-col min-h-0 ${sub === "pet"      ? "" : "hidden"}`}><PetFood /></div>
       </div>
 
       {helpOpen && <HabitsHelp onClose={() => setHelpOpen(false)} />}

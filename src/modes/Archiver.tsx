@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { classifyPath } from "./readers/formats";
+import type { ReaderOpenRequest } from "./readers/readerTypes";
 
 type TreeNode = {
   name: string;
@@ -97,7 +98,7 @@ function updateNode(
 
 type Props = {
   /** Called when the user clicks a file with a Reader-supported format. */
-  onOpenFile?: (path: string) => void;
+  onOpenFile?: (request: ReaderOpenRequest) => void;
 };
 
 export function Archiver({ onOpenFile }: Props = {}) {
@@ -105,6 +106,7 @@ export function Archiver({ onOpenFile }: Props = {}) {
   const [error, setError] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
+  const [vaultWritable, setVaultWritable] = useState(false);
   // Transient banner used for "this file type isn't supported by the Reader"
   // and similar in-context messages. Auto-clears after a few seconds.
   const [notice, setNotice] = useState<string | null>(null);
@@ -140,13 +142,16 @@ export function Archiver({ onOpenFile }: Props = {}) {
     setSelectedPath(null);
     setConnecting(true);
 
+    let canWriteVault = true;
     try {
       await ensureVault(selected);
     } catch (e) {
       // Still try to read the folder even if we can't write the vault file.
+      canWriteVault = false;
       const msg = e instanceof Error ? e.message : String(e);
       setError(`Could not initialize vault file (${msg}). Showing read-only view.`);
     }
+    setVaultWritable(canWriteVault);
 
     const name = selected.split("/").filter(Boolean).pop() ?? selected;
     const initial: TreeNode = {
@@ -212,6 +217,7 @@ export function Archiver({ onOpenFile }: Props = {}) {
   const handleDisconnect = () => {
     setRoot(null);
     setSelectedPath(null);
+    setVaultWritable(false);
     setError(null);
     try {
       localStorage.removeItem(VAULT_PREF_KEY);
@@ -307,7 +313,13 @@ export function Archiver({ onOpenFile }: Props = {}) {
       return;
     }
     setNotice(null);
-    onOpenFile?.(node.path);
+    if (!root) return;
+    onOpenFile?.({
+      path: node.path,
+      source: "vault",
+      vaultRoot: root.path,
+      vaultWritable,
+    });
   };
 
   const renderNode = (node: TreeNode, depth = 0) => {

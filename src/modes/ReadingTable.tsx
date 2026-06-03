@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { BookOpen } from "lucide-react";
 import { open } from "@tauri-apps/plugin-dialog";
-import { readFile } from "@tauri-apps/plugin-fs";
+import { readFile, writeTextFile } from "@tauri-apps/plugin-fs";
 import { invoke } from "@tauri-apps/api/core";
 import mammoth from "mammoth";
 import { EpubReader } from "./readers/EpubReader";
@@ -17,10 +17,21 @@ import {
   type SplitMode,
 } from "./readers/ReaderShell";
 import { useReadingTimer } from "./readers/useReadingTimer";
+import type { ReaderOpenRequest, ReaderAccess } from "./readers/readerTypes";
+import {
+  useReaderAnnotations,
+  type ReaderAnnotation,
+  type ReaderAnnotationKind,
+  type ReaderAnnotationLocator,
+  type ReaderDocumentAnnotationMeta,
+} from "../state/ReaderAnnotationsContext";
 
 const SPLIT_PREF_KEY = "triptych.reader.split";
 const FONT_PREF_KEY = "triptych.reader.fontScale";
 const THEME_PREF_KEY = "triptych.reader.theme";
+
+type MarkdownViewMode = "read" | "write";
+type MarkdownSaveStatus = "saved" | "unsaved" | "saving" | "failed";
 
 function loadSplit(): SplitMode {
   if (typeof localStorage === "undefined") return 1;
@@ -38,15 +49,15 @@ function loadTheme(): ReaderTheme {
 }
 
 type LoadedFile =
-  | { kind: "epub"; buffer: ArrayBuffer; name: string }
-  | { kind: "pdf"; buffer: ArrayBuffer; name: string }
+  | ({ kind: "epub"; buffer: ArrayBuffer; name: string } & ReaderAccess)
+  | ({ kind: "pdf"; buffer: ArrayBuffer; name: string } & ReaderAccess)
   | {
       kind: "text";
       buffer: ArrayBuffer;
       name: string;
       format: Extract<Classification, { kind: "text" }>["format"];
-    }
-  | { kind: "html"; html: string; name: string; label: string };
+    } & ReaderAccess
+  | ({ kind: "html"; html: string; name: string; label: string } & ReaderAccess);
 
 async function readBuffer(path: string): Promise<ArrayBuffer> {
   const bytes = await readFile(path);
@@ -56,12 +67,76 @@ async function readBuffer(path: string): Promise<ArrayBuffer> {
   ) as ArrayBuffer;
 }
 
+function decodeUtf8(buffer: ArrayBuffer) {
+  return new TextDecoder("utf-8", { fatal: false })
+    .decode(buffer)
+    .replace(/^﻿/, "");
+}
+
 type Props = {
-  pendingPath?: string | null;
+  pendingOpenRequest?: ReaderOpenRequest | null;
   onPendingConsumed?: () => void;
 };
 
-export function ReadingTable({ pendingPath, onPendingConsumed }: Props) {
+function toHex(buffer: ArrayBuffer) {
+  return Array.from(new Uint8Array(buffer))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+async function sha256Bytes(buffer: ArrayBuffer) {
+  const digest = await crypto.subtle.digest("SHA-256", buffer);
+  return toHex(digest);
+}
+
+async function sha256Text(value: string) {
+  const bytes = new TextEncoder().encode(value);
+  return sha256Bytes(bytes.buffer as ArrayBuffer);
+}
+
+function relativeToVault(path: string, vaultRoot?: string) {
+  if (!vaultRoot) return path.split("/").pop() ?? path;
+  if (path === vaultRoot) return "/";
+  const prefix = vaultRoot.endsWith("/") ? vaultRoot : `${vaultRoot}/`;
+  return path.startsWith(prefix) ? path.slice(prefix.length) : path.split("/").pop() ?? path;
+}
+
+async function buildAccess(request: ReaderOpenRequest, buffer: ArrayBuffer): Promise<ReaderAccess> {
+  const contentHash = await sha256Bytes(buffer);
+  const relativePath = request.source === "vault"
+    ? relativeToVault(request.path, request.vaultRoot)
+    : request.path.split("/").pop() ?? request.path;
+  const documentKey = request.source === "vault"
+    ? await sha256Text(`${relativePath}\n${contentHash}`)
+    : `direct:${contentHash}`;
+  const canWriteVault = request.source === "vault" && request.vaultWritable;
+  const status = request.source === "direct"
+    ? "Read-only · opened directly"
+    : canWriteVault
+      ? "Vault editing enabled"
+      : "Read-only · vault metadata unavailable";
+  return {
+    path: request.path,
+    source: request.source,
+    canWriteVault,
+    status,
+    vaultRoot: request.source === "vault" ? request.vaultRoot : undefined,
+    relativePath,
+    documentKey,
+  };
+}
+
+function annotationMeta(file: LoadedFile): ReaderDocumentAnnotationMeta {
+  const format = file.kind === "text" ? file.format : file.kind;
+  return {
+    documentKey: file.documentKey,
+    relativePath: file.relativePath,
+    fileName: file.name,
+    format,
+  };
+}
+
+export function ReadingTable({ pendingOpenRequest, onPendingConsumed }: Props) {
   const [file, setFile] = useState<LoadedFile | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("Loading…");
@@ -69,6 +144,12 @@ export function ReadingTable({ pendingPath, onPendingConsumed }: Props) {
   const [split, setSplit] = useState<SplitMode>(loadSplit);
   const [fontScale, setFontScale] = useState<number>(loadFontScale);
   const [theme, setTheme] = useState<ReaderTheme>(loadTheme);
+  const [annotations, setAnnotations] = useState<ReaderAnnotation[]>([]);
+  const [markdownDraft, setMarkdownDraft] = useState("");
+  const [markdownOriginal, setMarkdownOriginal] = useState("");
+  const [markdownMode, setMarkdownMode] = useState<MarkdownViewMode>("write");
+  const [markdownSaveStatus, setMarkdownSaveStatus] = useState<MarkdownSaveStatus>("saved");
+  const annotationStore = useReaderAnnotations();
 
   // Timer lives at the table level so split/unsplit doesn't reset it.
   // Resets only when the open file changes.
@@ -119,8 +200,10 @@ export function ReadingTable({ pendingPath, onPendingConsumed }: Props) {
     });
   }, []);
 
-  const loadFromPath = useCallback(async (path: string) => {
+  const loadFromRequest = useCallback(async (request: ReaderOpenRequest) => {
+    const { path } = request;
     setError(null);
+    setAnnotations([]);
     const klass = classifyPath(path);
     if (!klass) {
       const ext = path.split(".").pop() ?? "";
@@ -135,18 +218,22 @@ export function ReadingTable({ pendingPath, onPendingConsumed }: Props) {
       if (klass.kind === "docx") {
         setLoadingMessage("Parsing .docx…");
         const buffer = await readBuffer(path);
+        const access = await buildAccess(request, buffer);
         const result = await mammoth.convertToHtml({ arrayBuffer: buffer });
-        setFile({ kind: "html", html: result.value, name, label: "Word (.docx)" });
+        setFile({ kind: "html", html: result.value, name, label: "Word (.docx)", ...access });
       } else if (klass.kind === "doc") {
         setLoadingMessage("Converting .doc via textutil…");
         const html = await invoke<string>("convert_doc", { path });
-        setFile({ kind: "html", html, name, label: "Word (.doc)" });
+        const access = await buildAccess(request, new TextEncoder().encode(html).buffer as ArrayBuffer);
+        setFile({ kind: "html", html, name, label: "Word (.doc)", ...access });
       } else if (klass.kind === "text") {
         const buffer = await readBuffer(path);
-        setFile({ kind: "text", buffer, name, format: klass.format });
+        const access = await buildAccess(request, buffer);
+        setFile({ kind: "text", buffer, name, format: klass.format, ...access });
       } else {
         const buffer = await readBuffer(path);
-        setFile({ kind: klass.kind, buffer, name });
+        const access = await buildAccess(request, buffer);
+        setFile({ kind: klass.kind, buffer, name, ...access });
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -163,23 +250,102 @@ export function ReadingTable({ pendingPath, onPendingConsumed }: Props) {
         filters: [{ name: "Documents", extensions: [...SUPPORTED_EXTS] }],
       });
       if (!path || typeof path !== "string") return;
-      await loadFromPath(path);
+      await loadFromRequest({ path, source: "direct" });
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
-  }, [loadFromPath]);
+  }, [loadFromRequest]);
 
   useEffect(() => {
-    if (!pendingPath) return;
+    if (!pendingOpenRequest) return;
     let cancelled = false;
     (async () => {
-      await loadFromPath(pendingPath);
+      await loadFromRequest(pendingOpenRequest);
       if (!cancelled) onPendingConsumed?.();
     })();
     return () => {
       cancelled = true;
     };
-  }, [pendingPath, loadFromPath, onPendingConsumed]);
+  }, [pendingOpenRequest, loadFromRequest, onPendingConsumed]);
+
+  useEffect(() => {
+    if (!file || !file.canWriteVault || !file.vaultRoot || (file.kind !== "epub" && file.kind !== "pdf")) {
+      setAnnotations([]);
+      return;
+    }
+    let cancelled = false;
+    const meta = annotationMeta(file);
+    void annotationStore.loadDocument(file.vaultRoot, meta).then((items) => {
+      if (!cancelled) setAnnotations(items);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [annotationStore, file]);
+
+  useEffect(() => {
+    if (file?.kind === "text" && file.format === "md") {
+      const next = decodeUtf8(file.buffer);
+      setMarkdownDraft(next);
+      setMarkdownOriginal(next);
+      setMarkdownSaveStatus("saved");
+      setMarkdownMode(file.canWriteVault ? "write" : "read");
+      return;
+    }
+    setMarkdownDraft("");
+    setMarkdownOriginal("");
+    setMarkdownSaveStatus("saved");
+    setMarkdownMode("write");
+  }, [file]);
+
+  useEffect(() => {
+    if (!file || file.kind !== "text" || file.format !== "md" || !file.canWriteVault) return;
+    if (markdownDraft === markdownOriginal) {
+      setMarkdownSaveStatus("saved");
+      return;
+    }
+    setMarkdownSaveStatus("unsaved");
+    const timer = window.setTimeout(() => {
+      setMarkdownSaveStatus("saving");
+      void writeTextFile(file.path, markdownDraft)
+        .then(() => {
+          setMarkdownOriginal(markdownDraft);
+          setMarkdownSaveStatus("saved");
+        })
+        .catch((e) => {
+          setMarkdownSaveStatus("failed");
+          setError(e instanceof Error ? e.message : String(e));
+        });
+    }, 700);
+    return () => window.clearTimeout(timer);
+  }, [file, markdownDraft, markdownOriginal]);
+
+  const addAnnotation = useCallback(
+    async (
+      kind: ReaderAnnotationKind,
+      locator: ReaderAnnotationLocator,
+      quote?: string,
+    ) => {
+      if (!file || !file.canWriteVault || !file.vaultRoot) return null;
+      const next = await annotationStore.addAnnotation(file.vaultRoot, annotationMeta(file), {
+        kind,
+        locator,
+        quote,
+      });
+      if (next) setAnnotations((prev) => [...prev, next]);
+      return next;
+    },
+    [annotationStore, file],
+  );
+
+  const removeAnnotation = useCallback(
+    async (annotationId: string) => {
+      if (!file || !file.canWriteVault || !file.vaultRoot) return;
+      await annotationStore.removeAnnotation(file.vaultRoot, annotationMeta(file), annotationId);
+      setAnnotations((prev) => prev.filter((annotation) => annotation.id !== annotationId));
+    },
+    [annotationStore, file],
+  );
 
   if (!file) {
     return (
@@ -230,6 +396,11 @@ export function ReadingTable({ pendingPath, onPendingConsumed }: Props) {
           key={paneKey}
           buffer={file.buffer}
           fileName={file.name}
+          readerStatus={file.status}
+          annotationsEnabled={file.canWriteVault}
+          annotations={annotations}
+          onAddAnnotation={addAnnotation}
+          onRemoveAnnotation={removeAnnotation}
           {...sharedShell}
         />
       );
@@ -240,6 +411,11 @@ export function ReadingTable({ pendingPath, onPendingConsumed }: Props) {
           key={paneKey}
           buffer={file.buffer}
           fileName={file.name}
+          readerStatus={file.status}
+          annotationsEnabled={file.canWriteVault}
+          annotations={annotations}
+          onAddAnnotation={addAnnotation}
+          onRemoveAnnotation={removeAnnotation}
           {...sharedShell}
         />
       );
@@ -251,6 +427,7 @@ export function ReadingTable({ pendingPath, onPendingConsumed }: Props) {
           html={file.html}
           fileName={file.name}
           formatLabel={file.label}
+          readerStatus={file.status}
           {...sharedShell}
         />
       );
@@ -261,6 +438,13 @@ export function ReadingTable({ pendingPath, onPendingConsumed }: Props) {
         buffer={file.buffer}
         fileName={file.name}
         format={file.format}
+        readerStatus={file.status}
+        canEditMarkdown={file.format === "md" && file.canWriteVault}
+        markdownDraft={file.format === "md" ? markdownDraft : undefined}
+        onMarkdownDraftChange={file.format === "md" ? setMarkdownDraft : undefined}
+        markdownMode={file.format === "md" ? markdownMode : undefined}
+        onMarkdownModeChange={file.format === "md" ? setMarkdownMode : undefined}
+        markdownSaveStatus={file.format === "md" ? markdownSaveStatus : undefined}
         {...sharedShell}
       />
     );
