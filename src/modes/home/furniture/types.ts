@@ -1,6 +1,7 @@
 // types.ts — FurnitureKind interface shared across registered items.
 
 import type { ReactNode } from "react";
+import type { IllustrationTone } from "../illustration";
 
 export type FurnitureCategory =
   | "storage"
@@ -36,6 +37,8 @@ export type FurnitureRenderProps = {
   dark: boolean;
   /** Accent color. Furniture may use it (e.g. fireplace flame on streak). */
   accent: string | null;
+  /** Mono is the product default; color keeps richer illustration masters available. */
+  tone?: IllustrationTone;
   state: FurnitureState;
 };
 

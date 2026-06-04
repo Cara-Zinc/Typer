@@ -3,6 +3,7 @@
 
 import type { Gaze } from "../../../state/usePetBehavior";
 import type { PetRenderState } from "./types";
+import { illustrationPalette, type IllustrationPalette } from "../illustration";
 
 /** Color-as-reward rule: accent only when happy AND fed (hunger > 50). */
 export function shouldShowAccent({ mood, hunger, accent }: Pick<PetRenderState, "mood" | "hunger" | "accent">): boolean {
@@ -27,4 +28,17 @@ export function SleepMark({ x = 100, y = 30, ink }: { x?: number; y?: number; in
 /** Ink/bg pair derived from dark prop. */
 export function inks(dark: boolean): { ink: string; bg: string } {
   return dark ? { ink: "#fff", bg: "#000" } : { ink: "#000", bg: "#fff" };
+}
+
+export function petPalette({
+  dark,
+  tone = "mono",
+  accent,
+}: Pick<PetRenderState, "dark" | "tone" | "accent">): IllustrationPalette {
+  return illustrationPalette(dark, tone, accent);
+}
+
+export function rewardTone(state: PetRenderState): string {
+  const palette = petPalette(state);
+  return shouldShowAccent(state) ? palette.accent : palette.ink;
 }

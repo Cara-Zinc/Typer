@@ -7,6 +7,7 @@ import {
   getPetKind,
   type PetMood,
 } from "../modes/home/pets";
+import type { IllustrationTone } from "../modes/home/illustration";
 import { usePetBehavior } from "../state/usePetBehavior";
 import { useTheme } from "../state/ThemeContext";
 
@@ -19,6 +20,8 @@ type Props = {
   size?: number;
   /** Accent color — applied only when mood='happy' AND hunger>50. */
   color?: string | null;
+  /** Mono is the app default; color is available for illustration previews. */
+  tone?: IllustrationTone;
   /** Override dark mode. Defaults to useTheme().dark. */
   dark?: boolean;
   /** When true, registers cursor/keyboard listeners for gaze + sleep. */
@@ -33,6 +36,7 @@ export function PetSprite({
   hunger = 70,
   size = 180,
   color = null,
+  tone = "mono",
   dark: darkProp,
   follow = true,
   hostRef: hostRefProp,
@@ -64,7 +68,7 @@ export function PetSprite({
       className="inline-block select-none"
       style={{ width: size, height }}
     >
-      {kind.render({ mood, blink, gaze, hunger, dark, accent: color })}
+      {kind.render({ mood, blink, gaze, hunger, dark, accent: color, tone })}
     </div>
   );
 }

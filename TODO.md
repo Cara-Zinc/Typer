@@ -80,6 +80,10 @@ review before expanding the feature set again.
   views do less background work.
 - Home/Furniture: wire furniture prices into an unlock/purchase flow before
   letting every catalog item be added freely.
+- Developer SVG atlas: build a standalone internal interface that renders every
+  SVG/React illustration available to Triptych, including pets, furniture, and
+  Habits reward goods, even if some assets are not exposed in the normal user
+  interface. Include mono/color previews and useful metadata for designers.
 - Reader/Magnifier: continue improving annotations, extraction metadata, and
   markdown editing ergonomics after the release branch is stable.
 - Build packaging: consider Vite manual chunks or dynamic imports for PDF,

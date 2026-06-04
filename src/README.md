@@ -30,9 +30,11 @@ Add furniture by creating or editing a registration in
 `modes/home/furniture/items.tsx`. `RoomEditor` reads the registry and groups
 items by category automatically.
 
-The current visual constraint for pet and furniture SVGs is simple primitives:
-prefer `rect`, `circle`, `ellipse`, and `line`; avoid complex path-heavy art
-unless the design direction changes.
+The current visual direction for pet and furniture SVGs is a maintainable
+"literary grayscale diorama": layered vector shapes, hatching, shadows, and
+state-aware details. `path`, `clipPath`, `mask`, and `pattern` are fine when
+they make an illustration clearer, but keep the forms hand-editable rather
+than opaque generated blobs.
 
 ## Deferred Work
 

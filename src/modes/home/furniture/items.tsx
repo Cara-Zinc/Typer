@@ -1,19 +1,33 @@
-// items.tsx — Starter furniture catalog.
+// items.tsx — Furniture catalog.
 //
-// 16 pieces, each a self-contained registerFurniture({…}) block. Add
-// items by copying any block, changing id/name/size/render, and saving
-// the file — the registry picks them up on next reload.
-//
-// Hard constraint: SVG primitives only (rect / circle / ellipse / line /
-// rotated rect = diamond). No paths.
+// The default Study pieces use a richer "literary grayscale diorama" SVG
+// style: layered silhouettes, hatching, cast shadows, and a color-capable
+// palette that currently renders in mono by default.
 
 import { registerFurniture } from "./registry";
+import { illustrationPalette, type IllustrationPalette } from "../illustration";
 
-function inks(dark: boolean): { ink: string; bg: string } {
-  return dark ? { ink: "#fff", bg: "#000" } : { ink: "#000", bg: "#fff" };
+function palette(dark: boolean, tone: "mono" | "color" = "mono", accent: string | null = null): IllustrationPalette {
+  return illustrationPalette(dark, tone, accent);
 }
 
-// ── 1 · Bookshelf — fills with pages read ─────────────────────────────
+function Hatch({
+  id,
+  ink,
+  opacity = 0.28,
+}: {
+  id: string;
+  ink: string;
+  opacity?: number;
+}) {
+  return (
+    <pattern id={id} width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <line x1="0" y1="0" x2="0" y2="8" stroke={ink} strokeWidth="1" opacity={opacity} />
+    </pattern>
+  );
+}
+
+// 1. Bookshelf - fills with pages read
 registerFurniture({
   id: "bookshelf",
   name: "Bookshelf",
@@ -22,35 +36,42 @@ registerFurniture({
   size: { w: 120, h: 230 },
   price: 80,
   description: "Visible books scale with pages read this week.",
-  render: ({ dark, state }) => {
-    const { ink, bg } = inks(dark);
-    const totalBooks = Math.min(28, Math.max(4, Math.floor(state.pagesRead / 4) + 6));
+  render: ({ dark, tone = "mono", accent, state }) => {
+    const p = palette(dark, tone, accent);
+    const totalBooks = Math.min(30, Math.max(6, Math.floor(state.pagesRead / 4) + 7));
     const shelves = 4;
     const perShelf = Math.ceil(totalBooks / shelves);
     return (
       <svg viewBox="0 0 120 230" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
-        <rect x="2" y="2" width="116" height="226" fill={bg} stroke={ink} strokeWidth="2" />
-        {[58, 114, 170, 220].map((y, i) => (
-          <line key={i} x1="2" y1={y} x2="118" y2={y} stroke={ink} strokeWidth="2" />
+        <defs><Hatch id="shelf-hatch" ink={p.ink} /></defs>
+        <ellipse cx="60" cy="226" rx="58" ry="6" fill={p.shadow} opacity="0.55" />
+        <path d="M8 8h104l6 218H2L8 8Z" fill={p.bg} stroke={p.ink} strokeWidth="2.2" />
+        <path d="M15 18h90v198H15z" fill={`url(#shelf-hatch)`} opacity="0.7" />
+        {[58, 113, 168, 216].map((y) => (
+          <path key={y} d={`M10 ${y}h100l4 6H6l4-6Z`} fill={p.paper} stroke={p.ink} strokeWidth="1.6" />
         ))}
         {Array.from({ length: shelves }).flatMap((_, shelfIdx) => {
-          const top = 4 + shelfIdx * 56;
+          const top = 16 + shelfIdx * 55;
           const visible = Math.min(perShelf, Math.max(0, totalBooks - shelfIdx * perShelf));
           return Array.from({ length: visible }).map((_, b) => {
-            const x = 6 + b * 9;
-            const h = 50 - (b % 3) * 4;
+            const x = 14 + b * 8.5;
+            const h = 40 + ((b + shelfIdx) % 4) * 3;
+            const fill = tone === "color" && b % 7 === 0 ? p.accent : p.bg;
             return (
-              <rect key={`${shelfIdx}-${b}`} x={x} y={top + (52 - h)} width="7" height={h} fill={bg} stroke={ink} strokeWidth="1.2" />
+              <g key={`${shelfIdx}-${b}`}>
+                <path d={`M${x} ${top + 42 - h}h6l1 ${h}h-7Z`} fill={fill} stroke={p.ink} strokeWidth="1" />
+                {(b + shelfIdx) % 3 === 0 && <line x1={x + 3} y1={top + 46 - h} x2={x + 3} y2={top + 38} stroke={p.ink} strokeWidth="0.5" opacity="0.45" />}
+              </g>
             );
           });
         })}
-        <rect x="-2" y="226" width="124" height="4" fill={ink} />
+        <path d="M0 224h120v5H0z" fill={p.ink} />
       </svg>
     );
   },
 });
 
-// ── 2 · Writing desk — typewriter + paper stack from words written ────
+// 2. Writing desk - typewriter + paper stack from words written
 registerFurniture({
   id: "desk",
   name: "Writing Desk",
@@ -59,29 +80,32 @@ registerFurniture({
   size: { w: 180, h: 110 },
   price: 100,
   description: "A solid oak desk with a typewriter and a stack of pages.",
-  render: ({ dark, state }) => {
-    const { ink, bg } = inks(dark);
+  render: ({ dark, tone = "mono", accent, state }) => {
+    const p = palette(dark, tone, accent);
     const pages = Math.min(8, Math.floor(state.words / 250));
     return (
       <svg viewBox="0 0 180 110" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
-        <rect x="2" y="36" width="176" height="10" fill={bg} stroke={ink} strokeWidth="2" />
-        <rect x="14" y="46" width="152" height="22" fill={bg} stroke={ink} strokeWidth="2" />
-        <circle cx="90" cy="57" r="2" fill={ink} />
-        <rect x="6" y="68" width="10" height="40" fill={ink} />
-        <rect x="164" y="68" width="10" height="40" fill={ink} />
-        <rect x="58" y="14" width="58" height="22" fill={bg} stroke={ink} strokeWidth="2" />
-        <rect x="64" y="6" width="46" height="10" fill={bg} stroke={ink} strokeWidth="2" />
-        <rect x="86" y="2" width="20" height="6" fill={bg} stroke={ink} strokeWidth="1.5" />
-        {[68, 78, 88, 98, 108].map((x, i) => (<circle key={i} cx={x} cy="28" r="1.5" fill={ink} />))}
-        {Array.from({ length: pages }).map((_, i) => (
-          <rect key={i} x={124 + (i % 2)} y={32 - i * 2} width="22" height="3" fill={bg} stroke={ink} strokeWidth="0.8" />
+        <defs><Hatch id="desk-hatch" ink={p.ink} opacity={0.18} /></defs>
+        <ellipse cx="91" cy="107" rx="82" ry="5" fill={p.shadow} />
+        <path d="M6 40h168l-7 12H13L6 40Z" fill={p.paper} stroke={p.ink} strokeWidth="2" />
+        <path d="M18 52h144v17H18z" fill={`url(#desk-hatch)`} stroke={p.ink} strokeWidth="1.8" />
+        <path d="M17 69h13l-5 39H8l9-39Zm133 0h13l9 39h-17l-5-39Z" fill={p.ink} />
+        <path d="M56 23h62l10 17H47l9-17Z" fill={p.bg} stroke={p.ink} strokeWidth="2" />
+        <path d="M64 10h45l7 13H58l6-13Z" fill={p.paper} stroke={p.ink} strokeWidth="1.7" />
+        <path d="M78 4h28v9H78z" fill={p.bg} stroke={p.ink} strokeWidth="1.4" />
+        {[64, 75, 86, 97, 108].map((x, i) => (
+          <circle key={i} cx={x} cy="34" r="2" fill={p.ink} />
         ))}
+        {Array.from({ length: pages }).map((_, i) => (
+          <path key={i} d={`M126 ${35 - i * 2}h26l2 4h-28Z`} fill={p.bg} stroke={p.ink} strokeWidth="0.8" opacity={0.96 - i * 0.05} />
+        ))}
+        <path d="M28 45h26M126 45h26" stroke={p.ink} strokeWidth="1" opacity="0.35" />
       </svg>
     );
   },
 });
 
-// ── 3 · Reading chair ─────────────────────────────────────────────────
+// 3. Reading chair
 registerFurniture({
   id: "chair",
   name: "Reading Chair",
@@ -90,23 +114,24 @@ registerFurniture({
   size: { w: 100, h: 140 },
   price: 60,
   description: "A high-back armchair. The pet may claim it.",
-  render: ({ dark }) => {
-    const { ink, bg } = inks(dark);
+  render: ({ dark, tone = "mono", accent }) => {
+    const p = palette(dark, tone, accent);
     return (
       <svg viewBox="0 0 100 140" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
-        <rect x="4"  y="2"  width="22" height="120" fill={bg} stroke={ink} strokeWidth="2" />
-        <line x1="4" y1="14" x2="26" y2="14" stroke={ink} strokeWidth="1" />
-        <rect x="26" y="60" width="68" height="14" fill={bg} stroke={ink} strokeWidth="2" />
-        <rect x="26" y="74" width="68" height="36" fill={bg} stroke={ink} strokeWidth="2" />
-        <line x1="32" y1="80" x2="88" y2="80" stroke={ink} strokeWidth="1" opacity="0.6" />
-        <rect x="28" y="110" width="6" height="22" fill={ink} />
-        <rect x="86" y="110" width="6" height="22" fill={ink} />
+        <defs><Hatch id="chair-hatch" ink={p.ink} opacity={0.2} /></defs>
+        <ellipse cx="54" cy="132" rx="38" ry="5" fill={p.shadow} />
+        <path d="M14 14c0-7 5-11 12-10h42c10 0 16 7 16 18v86H14V14Z" fill={p.paper} stroke={p.ink} strokeWidth="2" />
+        <path d="M22 21h54v44H22z" fill={`url(#chair-hatch)`} opacity="0.8" />
+        <path d="M8 68h84l-7 36H18L8 68Z" fill={p.bg} stroke={p.ink} strokeWidth="2" />
+        <path d="M16 82h68M20 94h60" stroke={p.ink} strokeWidth="1" opacity="0.35" />
+        <path d="M20 103h10v28H20zm50 0h10v28H70z" fill={p.ink} />
+        <path d="M2 62h18v48H2zm78 0h18v48H80z" fill={p.bg} stroke={p.ink} strokeWidth="2" />
       </svg>
     );
   },
 });
 
-// ── 4 · Fireplace — flame tier from streak ────────────────────────────
+// 4. Fireplace - flame tier from streak
 registerFurniture({
   id: "fireplace",
   name: "Fireplace",
@@ -115,45 +140,31 @@ registerFurniture({
   size: { w: 150, h: 180 },
   price: 240,
   description: "Burns brighter with every day of your streak.",
-  render: ({ dark, accent, state }) => {
-    const { ink, bg } = inks(dark);
+  render: ({ dark, tone = "mono", accent, state }) => {
+    const p = palette(dark, tone, accent);
     const streak = state.streak;
     const tier = streak <= 0 ? 0 : streak <= 2 ? 1 : streak <= 5 ? 2 : streak <= 13 ? 3 : 4;
-    const flameColor = streak > 0 ? (accent ?? ink) : ink;
+    const flame = streak > 0 ? p.ember : p.ink;
     return (
       <svg viewBox="0 0 150 180" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
-        <rect x="-4" y="30"  width="158" height="14"  fill={bg} stroke={ink} strokeWidth="2" />
-        <rect x="6"  y="44"  width="138" height="120" fill={bg} stroke={ink} strokeWidth="2" />
-        <rect x="28" y="62"  width="94"  height="102" fill={bg} stroke={ink} strokeWidth="2" />
-        <rect x="-4" y="164" width="158" height="14"  fill={bg} stroke={ink} strokeWidth="2" />
-        {tier >= 1 && (
-          <>
-            <rect x="40" y="148" width="32" height="6" fill={ink} />
-            <rect x="76" y="142" width="32" height="6" fill={ink} />
-          </>
-        )}
-        {tier >= 1 && <rect x="68" y="128" width="14" height="14" fill={flameColor} transform="rotate(45 75 135)" />}
-        {tier >= 2 && (
-          <>
-            <rect x="54" y="124" width="10" height="10" fill={flameColor} transform="rotate(45 59 129)" />
-            <rect x="86" y="124" width="10" height="10" fill={flameColor} transform="rotate(45 91 129)" />
-          </>
-        )}
-        {tier >= 3 && <rect x="62" y="106" width="18" height="18" fill={flameColor} transform="rotate(45 71 115)" />}
-        {tier >= 4 && (
-          <>
-            <rect x="46" y="98" width="10" height="10" fill={flameColor} transform="rotate(45 51 103)" />
-            <rect x="92" y="98" width="10" height="10" fill={flameColor} transform="rotate(45 97 103)" />
-          </>
-        )}
-        <circle cx="75" cy="22" r="6" fill={bg} stroke={ink} strokeWidth="1.5" />
-        <line x1="75" y1="22" x2="75" y2="18" stroke={ink} strokeWidth="1" />
+        <defs><Hatch id="fire-hatch" ink={p.ink} opacity={0.2} /></defs>
+        <ellipse cx="75" cy="176" rx="70" ry="5" fill={p.shadow} />
+        <path d="M1 27h148l-8 17H9L1 27Z" fill={p.paper} stroke={p.ink} strokeWidth="2" />
+        <path d="M10 44h130v119H10z" fill={`url(#fire-hatch)`} stroke={p.ink} strokeWidth="2" />
+        <path d="M31 64h88v99H31V64Zm12 15v84h64V79Z" fill={p.bg} stroke={p.ink} strokeWidth="2" />
+        <path d="M0 163h150v16H0z" fill={p.paper} stroke={p.ink} strokeWidth="2" />
+        {tier >= 1 && <path d="M42 148h32l-5 6H38l4-6Zm35-8h34l-5 6H72l5-6Z" fill={p.ink} />}
+        {tier >= 1 && <path d="M75 137c-13-13 2-24 0-38 17 18 23 35 0 38Z" fill={flame} stroke={p.ink} strokeWidth="1.2" />}
+        {tier >= 2 && <path d="M57 137c-10-9 0-20 1-29 12 13 16 25-1 29Z" fill={flame} stroke={p.ink} strokeWidth="0.8" />}
+        {tier >= 2 && <path d="M94 137c-9-8-2-18 0-26 11 11 14 23 0 26Z" fill={flame} stroke={p.ink} strokeWidth="0.8" />}
+        {tier >= 3 && <path d="M75 126c-7-8 1-17 1-26 9 12 12 20-1 26Z" fill={p.bg} opacity="0.7" />}
+        <circle cx="75" cy="19" r="6" fill={p.bg} stroke={p.ink} strokeWidth="1.5" />
       </svg>
     );
   },
 });
 
-// ── 5 · Tall window — sky reflects time of day ────────────────────────
+// 5. Tall window - sky reflects time of day
 registerFurniture({
   id: "window",
   name: "Tall Window",
@@ -162,27 +173,29 @@ registerFurniture({
   size: { w: 96, h: 170 },
   price: 0,
   description: "Sky outside changes with the hour.",
-  render: ({ dark, state }) => {
-    const { ink, bg } = inks(dark);
+  render: ({ dark, tone = "mono", accent, state }) => {
+    const p = palette(dark, tone, accent);
     const phase = state.dayPhase;
-    const sunMoonY = phase === "night" ? 36 : phase === "dawn" ? 110 : phase === "dusk" ? 110 : 50;
+    const orbY = phase === "night" ? 35 : phase === "day" ? 50 : 108;
     return (
       <svg viewBox="0 0 96 170" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
-        <rect x="2" y="2" width="92" height="166" fill={bg} stroke={ink} strokeWidth="2" />
-        <line x1="48" y1="2" x2="48" y2="168" stroke={ink} strokeWidth="2" />
-        <line x1="2"  y1="84" x2="94" y2="84"  stroke={ink} strokeWidth="2" />
-        <circle cx="64" cy={sunMoonY} r="9" fill={bg} stroke={ink} strokeWidth="1.5" />
-        {phase === "night" && <circle cx="60" cy={sunMoonY - 2} r="4" fill={bg} />}
-        {phase === "night" && [[22,30],[30,50],[18,60],[76,20],[80,56],[26,100],[82,100]].map(([cx,cy],i) => (
-          <circle key={i} cx={cx} cy={cy} r="0.8" fill={ink} />
+        <defs><Hatch id="window-hatch" ink={p.ink} opacity={phase === "night" ? 0.2 : 0.1} /></defs>
+        <path d="M6 3h84v161H6z" fill={p.bg} stroke={p.ink} strokeWidth="2" />
+        <path d="M13 12h70v143H13z" fill={phase === "night" ? p.wash : p.paper} stroke={p.ink} strokeWidth="1" />
+        <path d="M13 12h70v143H13z" fill="url(#window-hatch)" />
+        <path d="M48 12v143M13 84h70" stroke={p.ink} strokeWidth="2" />
+        <circle cx="66" cy={orbY} r="10" fill={phase === "night" ? p.bg : p.warm} stroke={p.ink} strokeWidth="1.4" />
+        {phase === "night" && <circle cx="62" cy={orbY - 3} r="6" fill={p.wash} />}
+        {phase === "night" && [[24,32],[31,52],[21,67],[77,24],[74,62],[28,106],[78,104]].map(([cx, cy], i) => (
+          <circle key={i} cx={cx} cy={cy} r="1" fill={p.ink} opacity="0.75" />
         ))}
-        <rect x="-4" y="168" width="104" height="6" fill={bg} stroke={ink} strokeWidth="2" />
+        <path d="M0 164h96v6H0z" fill={p.paper} stroke={p.ink} strokeWidth="2" />
       </svg>
     );
   },
 });
 
-// ── 6 · Wall clock — hands at current time ────────────────────────────
+// 6. Wall clock - hands at current time
 registerFurniture({
   id: "clock",
   name: "Wall Clock",
@@ -191,8 +204,8 @@ registerFurniture({
   size: { w: 56, h: 56 },
   price: 30,
   description: "Tells the time. That's all you need from it.",
-  render: ({ dark, state }) => {
-    const { ink, bg } = inks(dark);
+  render: ({ dark, tone = "mono", accent, state }) => {
+    const p = palette(dark, tone, accent);
     const t = state.time;
     const h = t.getHours() % 12;
     const m = t.getMinutes();
@@ -202,22 +215,22 @@ registerFurniture({
     const cx = 28, cy = 28;
     return (
       <svg viewBox="0 0 56 56" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
-        <circle cx={cx} cy={cy} r="22" fill={bg} stroke={ink} strokeWidth="2" />
-        {[0, 90, 180, 270].map((a) => (
-          <line key={a}
-            x1={cx + Math.cos(rad(a - 90)) * 18} y1={cy + Math.sin(rad(a - 90)) * 18}
-            x2={cx + Math.cos(rad(a - 90)) * 22} y2={cy + Math.sin(rad(a - 90)) * 22}
-            stroke={ink} strokeWidth="1.5" />
-        ))}
-        <line x1={cx} y1={cy} x2={cx + Math.cos(rad(hAng)) * 12} y2={cy + Math.sin(rad(hAng)) * 12} stroke={ink} strokeWidth="2.5" />
-        <line x1={cx} y1={cy} x2={cx + Math.cos(rad(mAng)) * 18} y2={cy + Math.sin(rad(mAng)) * 18} stroke={ink} strokeWidth="1.5" />
-        <circle cx={cx} cy={cy} r="1.5" fill={ink} />
+        <circle cx={cx} cy={cy + 1} r="24" fill={p.shadow} opacity="0.4" />
+        <circle cx={cx} cy={cy} r="23" fill={p.paper} stroke={p.ink} strokeWidth="2" />
+        <circle cx={cx} cy={cy} r="17" fill={p.bg} stroke={p.ink} strokeWidth="0.8" opacity="0.9" />
+        {Array.from({ length: 12 }).map((_, i) => {
+          const a = i * 30 - 90;
+          return <line key={i} x1={cx + Math.cos(rad(a)) * 19} y1={cy + Math.sin(rad(a)) * 19} x2={cx + Math.cos(rad(a)) * 21} y2={cy + Math.sin(rad(a)) * 21} stroke={p.ink} strokeWidth={i % 3 === 0 ? 1.6 : 0.8} />;
+        })}
+        <line x1={cx} y1={cy} x2={cx + Math.cos(rad(hAng)) * 11} y2={cy + Math.sin(rad(hAng)) * 11} stroke={p.ink} strokeWidth="2.4" />
+        <line x1={cx} y1={cy} x2={cx + Math.cos(rad(mAng)) * 17} y2={cy + Math.sin(rad(mAng)) * 17} stroke={p.ink} strokeWidth="1.3" />
+        <circle cx={cx} cy={cy} r="2" fill={p.ink} />
       </svg>
     );
   },
 });
 
-// ── 7 · Picture frame — author of today's quote ───────────────────────
+// 7. Picture frame - author of today's quote
 registerFurniture({
   id: "picture",
   name: "Picture Frame",
@@ -226,25 +239,25 @@ registerFurniture({
   size: { w: 96, h: 80 },
   price: 20,
   description: "Holds today's passage. Refreshes at dawn.",
-  render: ({ dark, state }) => {
-    const { ink, bg } = inks(dark);
-    const author = state.quote?.author ?? "—";
+  render: ({ dark, tone = "mono", accent, state }) => {
+    const p = palette(dark, tone, accent);
+    const author = state.quote?.author ?? "-";
     return (
       <svg viewBox="0 0 96 80" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
-        <line x1="48" y1="0" x2="48" y2="6" stroke={ink} strokeWidth="1.5" />
-        <rect x="4" y="6" width="88" height="68" fill={bg} stroke={ink} strokeWidth="2" />
-        <rect x="10" y="12" width="76" height="56" fill={bg} stroke={ink} strokeWidth="1" />
-        <text x="48" y="32" textAnchor="middle" fontFamily="Georgia, serif" fontStyle="italic" fontSize="14" fill={ink}>"…"</text>
-        <line x1="20" y1="44" x2="76" y2="44" stroke={ink} strokeWidth="0.8" opacity="0.5" />
-        <line x1="22" y1="50" x2="74" y2="50" stroke={ink} strokeWidth="0.8" opacity="0.5" />
-        <line x1="20" y1="56" x2="76" y2="56" stroke={ink} strokeWidth="0.8" opacity="0.5" />
-        <text x="48" y="66" textAnchor="middle" fontFamily="ui-monospace, monospace" fontSize="5" letterSpacing="0.1em" fill={ink} opacity="0.7">— {author.toUpperCase()}</text>
+        <line x1="48" y1="0" x2="48" y2="7" stroke={p.ink} strokeWidth="1.5" />
+        <path d="M5 7h86v66H5z" fill={p.paper} stroke={p.ink} strokeWidth="2" />
+        <path d="M11 13h74v54H11z" fill={p.bg} stroke={p.ink} strokeWidth="1" />
+        <path d="M18 48c12-19 22-21 30-9 10-14 22-11 32 9" fill="none" stroke={p.ink} strokeWidth="1.1" opacity="0.5" />
+        <text x="48" y="31" textAnchor="middle" fontFamily="Georgia, serif" fontStyle="italic" fontSize="14" fill={p.ink}>"..."</text>
+        <line x1="20" y1="43" x2="76" y2="43" stroke={p.ink} strokeWidth="0.8" opacity="0.5" />
+        <line x1="23" y1="50" x2="73" y2="50" stroke={p.ink} strokeWidth="0.8" opacity="0.45" />
+        <text x="48" y="65" textAnchor="middle" fontFamily="ui-monospace, monospace" fontSize="5" letterSpacing="0.08em" fill={p.ink} opacity="0.7">- {author.toUpperCase()}</text>
       </svg>
     );
   },
 });
 
-// ── 8 · Floor lamp ────────────────────────────────────────────────────
+// 8. Floor lamp
 registerFurniture({
   id: "floorlamp",
   name: "Floor Lamp",
@@ -253,24 +266,24 @@ registerFurniture({
   size: { w: 56, h: 230 },
   price: 40,
   description: "Casts a warm circle. Reduces eye strain at dusk.",
-  render: ({ dark, state }) => {
-    const { ink } = inks(dark);
+  render: ({ dark, tone = "mono", accent, state }) => {
+    const p = palette(dark, tone, accent);
     const lit = state.dayPhase !== "day";
     return (
       <svg viewBox="0 0 56 230" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
-        <rect x="26" y="48" width="4" height="170" fill={ink} />
-        <rect x="14" y="6"  width="28" height="3" fill={ink} />
-        <rect x="6"  y="46" width="44" height="3" fill={ink} />
-        <line x1="14" y1="9" x2="6"  y2="46" stroke={ink} strokeWidth="2" />
-        <line x1="42" y1="9" x2="50" y2="46" stroke={ink} strokeWidth="2" />
-        {lit && <circle cx="28" cy="44" r="2" fill={ink} />}
-        <ellipse cx="28" cy="222" rx="14" ry="4" fill={ink} />
+        <ellipse cx="28" cy="224" rx="17" ry="5" fill={p.shadow} />
+        {lit && <path d="M8 47h40l-12 82H20L8 47Z" fill={p.wash} opacity="0.45" />}
+        <rect x="26" y="48" width="4" height="170" fill={p.ink} />
+        <path d="M14 7h28l9 40H5L14 7Z" fill={p.paper} stroke={p.ink} strokeWidth="2" />
+        <path d="M14 7h28M5 47h46" stroke={p.ink} strokeWidth="1.2" />
+        {lit && <circle cx="28" cy="44" r="2.5" fill={p.warm} />}
+        <ellipse cx="28" cy="222" rx="14" ry="4" fill={p.ink} />
       </svg>
     );
   },
 });
 
-// ── 9 · Potted plant — grows with tokens earned today ─────────────────
+// 9. Potted plant - grows with tokens earned today
 registerFurniture({
   id: "plant",
   name: "Potted Plant",
@@ -279,31 +292,31 @@ registerFurniture({
   size: { w: 76, h: 116 },
   price: 30,
   description: "A small fern. Larger when you've earned today.",
-  render: ({ dark, state }) => {
-    const { ink, bg } = inks(dark);
+  render: ({ dark, tone = "mono", accent, state }) => {
+    const p = palette(dark, tone, accent);
     const tier = Math.min(3, Math.floor(state.tokensToday / 40));
+    const leaf = tier > 0 ? p.leaf : p.ink;
     return (
       <svg viewBox="0 0 76 116" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
-        <ellipse cx="38" cy="56" rx="6" ry={28 + tier * 4} fill={bg} stroke={ink} strokeWidth="1.8" />
-        <ellipse cx="24" cy="62" rx="6" ry={22 + tier * 3} fill={bg} stroke={ink} strokeWidth="1.8" transform="rotate(-22 24 62)" />
-        <ellipse cx="52" cy="62" rx="6" ry={22 + tier * 3} fill={bg} stroke={ink} strokeWidth="1.8" transform="rotate(22 52 62)" />
+        <ellipse cx="39" cy="112" rx="26" ry="4" fill={p.shadow} />
+        <path d="M39 88C31 61 33 42 39 25c6 17 8 36 0 63Z" fill={p.bg} stroke={leaf} strokeWidth="1.8" />
+        <path d="M34 84C18 62 13 47 18 35c13 10 22 26 23 49Z" fill={p.bg} stroke={leaf} strokeWidth="1.8" />
+        <path d="M44 84c16-22 21-37 16-49-13 10-22 26-23 49Z" fill={p.bg} stroke={leaf} strokeWidth="1.8" />
         {tier >= 2 && (
           <>
-            <ellipse cx="16" cy="70" rx="5" ry="16" fill={bg} stroke={ink} strokeWidth="1.5" transform="rotate(-44 16 70)" />
-            <ellipse cx="60" cy="70" rx="5" ry="16" fill={bg} stroke={ink} strokeWidth="1.5" transform="rotate(44 60 70)" />
+            <path d="M29 82C12 72 8 59 8 48c12 4 21 14 27 34Z" fill={p.bg} stroke={leaf} strokeWidth="1.4" />
+            <path d="M49 82c17-10 21-23 21-34-12 4-21 14-27 34Z" fill={p.bg} stroke={leaf} strokeWidth="1.4" />
           </>
         )}
-        <line x1="20" y1="84"  x2="56" y2="84"  stroke={ink} strokeWidth="2" />
-        <line x1="20" y1="84"  x2="24" y2="110" stroke={ink} strokeWidth="2" />
-        <line x1="56" y1="84"  x2="52" y2="110" stroke={ink} strokeWidth="2" />
-        <line x1="24" y1="110" x2="52" y2="110" stroke={ink} strokeWidth="2" />
-        <line x1="20" y1="88"  x2="56" y2="88"  stroke={ink} strokeWidth="1" />
+        {tier >= 3 && <path d="M39 78C31 55 44 43 50 31c7 18 4 34-11 47Z" fill={p.bg} stroke={leaf} strokeWidth="1.3" />}
+        <path d="M19 84h40l-7 27H26L19 84Z" fill={p.paper} stroke={p.ink} strokeWidth="2" />
+        <path d="M23 90h32" stroke={p.ink} strokeWidth="1" opacity="0.5" />
       </svg>
     );
   },
 });
 
-// ── 10 · Rug ──────────────────────────────────────────────────────────
+// 10. Rug
 registerFurniture({
   id: "rug",
   name: "Rug",
@@ -312,23 +325,22 @@ registerFurniture({
   size: { w: 240, h: 24 },
   price: 25,
   description: "Defines the room. Warm underfoot.",
-  render: ({ dark }) => {
-    const { ink, bg } = inks(dark);
+  render: ({ dark, tone = "mono", accent }) => {
+    const p = palette(dark, tone, accent);
     return (
       <svg viewBox="0 0 240 24" width="100%" height="100%" preserveAspectRatio="none">
-        <ellipse cx="120" cy="14" rx="118" ry="8" fill={bg} stroke={ink} strokeWidth="2" />
-        <line x1="20" y1="14" x2="220" y2="14" stroke={ink} strokeWidth="0.8" opacity="0.4" />
-        <line x1="36" y1="10" x2="204" y2="10" stroke={ink} strokeWidth="0.8" opacity="0.3" />
-        <line x1="36" y1="18" x2="204" y2="18" stroke={ink} strokeWidth="0.8" opacity="0.3" />
-        {Array.from({ length: 9 }).map((_, i) => (
-          <line key={i} x1={6 + i * 2} y1="22" x2={6 + i * 2} y2="24" stroke={ink} strokeWidth="0.8" />
+        <path d="M6 14c25-12 202-12 228 0-25 12-203 12-228 0Z" fill={p.paper} stroke={p.ink} strokeWidth="2" />
+        <path d="M33 14c21-5 152-5 174 0-22 5-153 5-174 0Z" fill={p.wash} stroke={p.ink} strokeWidth="0.9" opacity="0.75" />
+        {[44, 74, 104, 134, 164, 194].map((x) => <line key={x} x1={x} y1="8" x2={x - 18} y2="20" stroke={p.ink} strokeWidth="0.7" opacity="0.4" />)}
+        {Array.from({ length: 12 }).map((_, i) => (
+          <line key={i} x1={6 + i * 2} y1="21" x2={6 + i * 2} y2="24" stroke={p.ink} strokeWidth="0.8" />
         ))}
       </svg>
     );
   },
 });
 
-// ── 11 · Stack of books ───────────────────────────────────────────────
+// 11. Stack of books
 registerFurniture({
   id: "stack",
   name: "Stack of Books",
@@ -337,21 +349,22 @@ registerFurniture({
   size: { w: 64, h: 50 },
   price: 15,
   description: "Yesterday's reading. Set down where it fell.",
-  render: ({ dark }) => {
-    const { ink, bg } = inks(dark);
+  render: ({ dark, tone = "mono", accent }) => {
+    const p = palette(dark, tone, accent);
     return (
       <svg viewBox="0 0 64 50" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
-        <rect x="6"  y="34" width="52" height="12" fill={bg} stroke={ink} strokeWidth="2" />
-        <rect x="10" y="22" width="44" height="12" fill={bg} stroke={ink} strokeWidth="2" />
-        <rect x="2"  y="10" width="52" height="12" fill={bg} stroke={ink} strokeWidth="2" />
-        <line x1="14" y1="14" x2="42" y2="14" stroke={ink} strokeWidth="1" opacity="0.5" />
-        <line x1="20" y1="26" x2="44" y2="26" stroke={ink} strokeWidth="1" opacity="0.5" />
+        <ellipse cx="33" cy="47" rx="28" ry="3" fill={p.shadow} />
+        <path d="M7 35h51l3 10H5l2-10Z" fill={p.paper} stroke={p.ink} strokeWidth="1.8" />
+        <path d="M12 23h43l-2 12H9l3-12Z" fill={tone === "color" ? p.accent : p.bg} stroke={p.ink} strokeWidth="1.7" />
+        <path d="M2 10h52l4 13H6L2 10Z" fill={p.paper} stroke={p.ink} strokeWidth="1.8" />
+        <line x1="15" y1="15" x2="43" y2="15" stroke={p.ink} strokeWidth="0.8" opacity="0.5" />
+        <line x1="19" y1="28" x2="45" y2="28" stroke={p.ink} strokeWidth="0.8" opacity="0.5" />
       </svg>
     );
   },
 });
 
-// ── 12 · Pet bed ──────────────────────────────────────────────────────
+// 12. Pet bed
 registerFurniture({
   id: "petbed",
   name: "Pet Bed",
@@ -360,19 +373,20 @@ registerFurniture({
   size: { w: 110, h: 32 },
   price: 40,
   description: "Where your companion sleeps when you're not at the desk.",
-  render: ({ dark }) => {
-    const { ink, bg } = inks(dark);
+  render: ({ dark, tone = "mono", accent }) => {
+    const p = palette(dark, tone, accent);
     return (
       <svg viewBox="0 0 110 32" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
-        <ellipse cx="55" cy="22" rx="52" ry="8" fill={bg} stroke={ink} strokeWidth="2" />
-        <ellipse cx="55" cy="18" rx="44" ry="5" fill={bg} stroke={ink} strokeWidth="1" />
-        <line x1="22" y1="18" x2="88" y2="18" stroke={ink} strokeWidth="0.8" opacity="0.4" />
+        <ellipse cx="55" cy="25" rx="52" ry="6" fill={p.shadow} />
+        <path d="M7 21c6-13 21-18 48-18s42 5 48 18c-9 8-88 8-96 0Z" fill={p.paper} stroke={p.ink} strokeWidth="2" />
+        <path d="M22 19c12-7 54-7 66 0" fill="none" stroke={p.ink} strokeWidth="1" opacity="0.4" />
+        <path d="M36 13h38" stroke={p.ink} strokeWidth="0.8" opacity="0.35" />
       </svg>
     );
   },
 });
 
-// ── 13 · Globe ────────────────────────────────────────────────────────
+// 13. Globe
 registerFurniture({
   id: "globe",
   name: "Globe",
@@ -381,22 +395,22 @@ registerFurniture({
   size: { w: 60, h: 96 },
   price: 50,
   description: "Continents implied by lines, not drawn.",
-  render: ({ dark }) => {
-    const { ink, bg } = inks(dark);
+  render: ({ dark, tone = "mono", accent }) => {
+    const p = palette(dark, tone, accent);
     return (
       <svg viewBox="0 0 60 96" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
-        <circle cx="30" cy="32" r="22" fill={bg} stroke={ink} strokeWidth="2" />
-        <ellipse cx="30" cy="32" rx="22" ry="6"  fill="none" stroke={ink} strokeWidth="0.8" />
-        <ellipse cx="30" cy="32" rx="22" ry="14" fill="none" stroke={ink} strokeWidth="0.8" />
-        <line x1="14" y1="14" x2="46" y2="50" stroke={ink} strokeWidth="1.5" />
-        <line x1="30" y1="54" x2="30" y2="86" stroke={ink} strokeWidth="2" />
-        <ellipse cx="30" cy="90" rx="16" ry="4" fill={bg} stroke={ink} strokeWidth="2" />
+        <circle cx="30" cy="32" r="22" fill={p.bg} stroke={p.ink} strokeWidth="2" />
+        <ellipse cx="30" cy="32" rx="22" ry="6" fill="none" stroke={p.ink} strokeWidth="0.8" />
+        <ellipse cx="30" cy="32" rx="22" ry="14" fill="none" stroke={p.ink} strokeWidth="0.8" />
+        <path d="M14 14c12 9 20 18 32 36" fill="none" stroke={p.ink} strokeWidth="1.5" />
+        <line x1="30" y1="54" x2="30" y2="86" stroke={p.ink} strokeWidth="2" />
+        <ellipse cx="30" cy="90" rx="16" ry="4" fill={p.bg} stroke={p.ink} strokeWidth="2" />
       </svg>
     );
   },
 });
 
-// ── 14 · Calendar — today's date ──────────────────────────────────────
+// 14. Calendar - today's date
 registerFurniture({
   id: "calendar",
   name: "Calendar",
@@ -405,24 +419,25 @@ registerFurniture({
   size: { w: 64, h: 76 },
   price: 20,
   description: "Today, in large numerals.",
-  render: ({ dark, state }) => {
-    const { ink, bg } = inks(dark);
+  render: ({ dark, tone = "mono", accent, state }) => {
+    const p = palette(dark, tone, accent);
     const day = state.time.getDate();
     const month = state.time.toLocaleString("en", { month: "short" }).toUpperCase();
     return (
       <svg viewBox="0 0 64 76" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
-        <line x1="22" y1="0" x2="22" y2="8" stroke={ink} strokeWidth="1.5" />
-        <line x1="42" y1="0" x2="42" y2="8" stroke={ink} strokeWidth="1.5" />
-        <rect x="4" y="4" width="56" height="68" fill={bg} stroke={ink} strokeWidth="2" />
-        <rect x="4" y="4" width="56" height="16" fill={ink} />
-        <text x="32" y="16" textAnchor="middle" fontFamily="ui-monospace, monospace" fontSize="9" fill={bg} letterSpacing="0.15em">{month}</text>
-        <text x="32" y="52" textAnchor="middle" fontFamily="Georgia, serif" fontWeight="700" fontSize="32" fill={ink} letterSpacing="-0.04em">{day}</text>
+        <line x1="21" y1="0" x2="21" y2="8" stroke={p.ink} strokeWidth="1.5" />
+        <line x1="43" y1="0" x2="43" y2="8" stroke={p.ink} strokeWidth="1.5" />
+        <path d="M5 5h54v66H5z" fill={p.paper} stroke={p.ink} strokeWidth="2" />
+        <path d="M5 5h54v17H5z" fill={p.ink} />
+        <text x="32" y="17" textAnchor="middle" fontFamily="ui-monospace, monospace" fontSize="9" fill={p.bg} letterSpacing="0.12em">{month}</text>
+        <text x="32" y="53" textAnchor="middle" fontFamily="Georgia, serif" fontWeight="700" fontSize="32" fill={p.ink}>{day}</text>
+        <path d="M14 59h36" stroke={p.ink} strokeWidth="1" opacity="0.25" />
       </svg>
     );
   },
 });
 
-// ── 15 · Tea cart ─────────────────────────────────────────────────────
+// 15. Tea cart
 registerFurniture({
   id: "teacart",
   name: "Tea Cart",
@@ -431,28 +446,26 @@ registerFurniture({
   size: { w: 96, h: 96 },
   price: 80,
   description: "Holds a kettle and a single cup.",
-  render: ({ dark }) => {
-    const { ink, bg } = inks(dark);
+  render: ({ dark, tone = "mono", accent }) => {
+    const p = palette(dark, tone, accent);
     return (
       <svg viewBox="0 0 96 96" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
-        <rect x="6" y="46" width="84" height="6" fill={bg} stroke={ink} strokeWidth="2" />
-        <rect x="6" y="60" width="84" height="6" fill={bg} stroke={ink} strokeWidth="1.5" />
-        <line x1="12" y1="52" x2="12" y2="84" stroke={ink} strokeWidth="2" />
-        <line x1="84" y1="52" x2="84" y2="84" stroke={ink} strokeWidth="2" />
-        <circle cx="14" cy="86" r="6" fill={bg} stroke={ink} strokeWidth="2" />
-        <circle cx="82" cy="86" r="6" fill={bg} stroke={ink} strokeWidth="2" />
-        <ellipse cx="38" cy="38" rx="14" ry="10" fill={bg} stroke={ink} strokeWidth="2" />
-        <line x1="50" y1="34" x2="58" y2="28" stroke={ink} strokeWidth="2" />
-        <ellipse cx="38" cy="28" rx="6" ry="3" fill={bg} stroke={ink} strokeWidth="1.5" />
-        <rect x="64" y="36" width="14" height="10" fill={bg} stroke={ink} strokeWidth="1.5" />
-        <ellipse cx="71" cy="36" rx="7" ry="2" fill={bg} stroke={ink} strokeWidth="1.5" />
-        <ellipse cx="80" cy="41" rx="3" ry="3" fill="none" stroke={ink} strokeWidth="1.2" />
+        <ellipse cx="48" cy="91" rx="40" ry="4" fill={p.shadow} />
+        <path d="M8 46h80l-4 8H12l-4-8Zm6 17h68l-4 7H18l-4-7Z" fill={p.paper} stroke={p.ink} strokeWidth="1.8" />
+        <path d="M13 54v30M83 54v30" stroke={p.ink} strokeWidth="2" />
+        <circle cx="15" cy="86" r="6" fill={p.bg} stroke={p.ink} strokeWidth="2" />
+        <circle cx="81" cy="86" r="6" fill={p.bg} stroke={p.ink} strokeWidth="2" />
+        <path d="M25 38c2-10 22-12 28-2 3 5-1 11-14 11-10 0-16-3-14-9Z" fill={p.bg} stroke={p.ink} strokeWidth="2" />
+        <path d="M49 35c6-3 8-6 11-8M33 29c4-4 12-4 17 0" stroke={p.ink} strokeWidth="1.6" fill="none" />
+        <path d="M64 36h14v10H64z" fill={p.bg} stroke={p.ink} strokeWidth="1.5" />
+        <ellipse cx="71" cy="36" rx="7" ry="2" fill={p.bg} stroke={p.ink} strokeWidth="1.5" />
+        <path d="M78 40c8 0 8 8 0 8" fill="none" stroke={p.ink} strokeWidth="1.2" />
       </svg>
     );
   },
 });
 
-// ── 16 · Wall sconce ─────────────────────────────────────────────────
+// 16. Wall sconce
 registerFurniture({
   id: "sconce",
   name: "Wall Sconce",
@@ -461,15 +474,16 @@ registerFurniture({
   size: { w: 32, h: 48 },
   price: 15,
   description: "A small light on the wall, for the evening hours.",
-  render: ({ dark, state }) => {
-    const { ink, bg } = inks(dark);
+  render: ({ dark, tone = "mono", accent, state }) => {
+    const p = palette(dark, tone, accent);
     const lit = state.dayPhase !== "day";
     return (
       <svg viewBox="0 0 32 48" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
-        <line x1="16" y1="0" x2="16" y2="12" stroke={ink} strokeWidth="2" />
-        <ellipse cx="16" cy="20" rx="12" ry="8" fill={bg} stroke={ink} strokeWidth="2" />
-        {lit && <circle cx="16" cy="20" r="4" fill={ink} />}
-        <rect x="14" y="28" width="4" height="16" fill={ink} />
+        {lit && <path d="M4 19c4-8 20-8 24 0 0 9-4 18-12 24C8 37 4 28 4 19Z" fill={p.wash} opacity="0.5" />}
+        <line x1="16" y1="0" x2="16" y2="12" stroke={p.ink} strokeWidth="2" />
+        <path d="M5 18c2-9 20-9 22 0l-4 9H9l-4-9Z" fill={p.paper} stroke={p.ink} strokeWidth="2" />
+        {lit && <circle cx="16" cy="21" r="4" fill={p.warm} stroke={p.ink} strokeWidth="0.8" />}
+        <path d="M14 28h4v16h-4z" fill={p.ink} />
       </svg>
     );
   },
