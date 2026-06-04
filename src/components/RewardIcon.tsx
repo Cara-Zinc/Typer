@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import DOMPurify from "dompurify";
 import tvSvg from "../assets/habits/tv.svg?raw";
 import bookSvg from "../assets/habits/book.svg?raw";
 import dessertSvg from "../assets/habits/dessert.svg?raw";
@@ -75,7 +76,10 @@ export function RewardIcon({
   className,
   animateVariantChange = false,
 }: Props) {
-  const html = useMemo(() => normalize(RAW[iconKey]), [iconKey]);
+  const html = useMemo(
+    () => DOMPurify.sanitize(normalize(RAW[iconKey]), { USE_PROFILES: { svg: true } }),
+    [iconKey]
+  );
 
   const style: React.CSSProperties = {
     width: size,
