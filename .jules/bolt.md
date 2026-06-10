@@ -1,3 +1,6 @@
 ## 2026-05-25 - React Component Re-render Avoidance via useMemo on large static SVGs
 **Learning:** `useMemo` can be used to wrap a heavy block of JSX to avoid it being diffed by React on every state change. For example, rendering hundreds of static SVG paths via `map` inside a component whose state changes on every keystroke (`text` state) was causing massive re-renders.
 **Action:** Use `useMemo` around large arrays of static elements to skip `createElement` and React diffing, significantly improving responsiveness of text inputs.
+## 2026-06-10 - Optimizing array iterations
+ **Learning:** Combining multiple array iterations into a single pass can provide a measurable performance improvement when working with large data sets. In TypeScript/JS, reducing multiple `.filter().reduce()` chains into a single `.reduce()` with an accumulator object is a safe and robust optimization technique that improves speed while preserving readability.
+ **Action:** When working on array iteration performance, benchmark different approaches (e.g., single `.reduce()`, single `for` loop). When a loop requires extracting multiple different metrics, opt for a single `.reduce()` or a standard `for` loop to avoid creating intermediate arrays and repeating iterations over the list.
