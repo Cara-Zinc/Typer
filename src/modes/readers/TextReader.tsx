@@ -3,7 +3,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
-import { Highlighter, ListChecks, Strikethrough, Underline } from "lucide-react";
+import { Highlighter, ListChecks, MessageSquareOff, Strikethrough, Underline } from "lucide-react";
 import { visit, SKIP } from "unist-util-visit";
 import type { Root, Text } from "mdast";
 import "katex/dist/katex.min.css";
@@ -81,6 +81,32 @@ function remarkUnderline() {
       next.forEach((child) => walk(child as { children?: unknown[] }));
     };
     walk(tree as { children?: unknown[] });
+  };
+}
+
+function remarkObsidianCommentLines() {
+  return (tree: Root) => {
+    visit(tree, "paragraph", (node, index, parent) => {
+      if (!parent || typeof index !== "number") return;
+      const children = "children" in node ? node.children : [];
+      if (
+        children.length !== 1 ||
+        children[0].type !== "text"
+      ) {
+        return;
+      }
+      const body = markdownCommentBody(children[0].value);
+      if (body === null) return;
+      parent.children.splice(index, 1, {
+        type: "obsidianCommentLine",
+        data: {
+          hName: "div",
+          hProperties: { className: "markdown-comment-line" },
+        },
+        children: [{ type: "text", value: body || " " }],
+      } as never);
+      return [SKIP, index + 1];
+    });
   };
 }
 
@@ -180,7 +206,7 @@ type MarkdownLine = {
 
 type MarkdownBlock = {
   id: string;
-  type: "blank" | "code" | "heading" | "list" | "table" | "paragraph";
+  type: "blank" | "code" | "comment" | "heading" | "list" | "table" | "paragraph";
   startLine: number;
   endLine: number;
   startOffset: number;
@@ -209,6 +235,16 @@ function isBlankLine(line: MarkdownLine) {
   return plainLine(line).trim() === "";
 }
 
+function markdownCommentBody(text: string): string | null {
+  const trimmed = text.trim();
+  if (!trimmed.startsWith("%%") || !trimmed.endsWith("%%") || trimmed.length < 4) return null;
+  return trimmed.slice(2, -2).trim();
+}
+
+function isCommentLine(line: MarkdownLine) {
+  return markdownCommentBody(plainLine(line)) !== null;
+}
+
 function isFenceStart(line: MarkdownLine) {
   return plainLine(line).match(/^ {0,3}(`{3,}|~{3,})/);
 }
@@ -229,6 +265,7 @@ function startsBlock(lines: MarkdownLine[], index: number) {
   const text = plainLine(line);
   return Boolean(
     isFenceStart(line) ||
+    isCommentLine(line) ||
     isTableStart(lines, index) ||
     /^ {0,3}#{1,6}\s+/.test(text) ||
     /^(\s*)([-*+]|\d+[.)])\s+/.test(text),
@@ -271,6 +308,12 @@ function parseMarkdownBlocks(source: string): MarkdownBlock[] {
       while (i < lines.length && !isFenceEnd(lines[i], marker)) i += 1;
       if (i < lines.length) i += 1;
       blocks.push(makeBlock(source, lines, start, Math.max(start, i - 1), "code"));
+      continue;
+    }
+
+    if (isCommentLine(lines[i])) {
+      blocks.push(makeBlock(source, lines, i, i, "comment"));
+      i += 1;
       continue;
     }
 
@@ -463,6 +506,24 @@ export function TextReader({
     });
   };
 
+  const toggleMarkdownCommentLine = () => {
+    if (!activeLine) {
+      const prefix = draft.length > 0 && !draft.endsWith("\n") ? "\n" : "";
+      setDraft(`${draft}${prefix}%% comment %%`);
+      setActiveLineIndex(markdownLines.length);
+      return;
+    }
+
+    const lineText = plainLine(activeLine);
+    const indent = lineText.match(/^\s*/)?.[0] ?? "";
+    const body = markdownCommentBody(lineText);
+    const nextText = body === null
+      ? `${indent}%% ${lineText.slice(indent.length).trim() || "comment"} %%`
+      : `${indent}${body}`;
+    replaceLine(activeLine, nextText);
+    requestAnimationFrame(() => textareaRef.current?.focus());
+  };
+
   const toggleTaskCheckboxAtLine = (lineIndex: number, checked: boolean) => {
     const lines = draft.split("\n");
     lines[lineIndex] = lines[lineIndex].replace(TASK_LINE_RE, `$1${checked ? "x" : " "}$3`);
@@ -583,6 +644,15 @@ export function TextReader({
           >
             <ListChecks size={13} />
           </button>
+          <button
+            type="button"
+            onClick={toggleMarkdownCommentLine}
+            className="p-1 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
+            title="Toggle Obsidian comment line (⌘/)"
+            aria-label="Toggle Obsidian comment line"
+          >
+            <MessageSquareOff size={13} />
+          </button>
         </div>
       )}
       <span className="border border-black dark:border-white px-2 py-1 font-mono uppercase tracking-widest text-[9px] opacity-65">
@@ -602,7 +672,7 @@ export function TextReader({
     return (
       <ReactMarkdown
         key={key}
-        remarkPlugins={[remarkGfm, remarkMath, remarkHighlight, remarkUnderline]}
+        remarkPlugins={[remarkGfm, remarkMath, remarkHighlight, remarkUnderline, remarkObsidianCommentLines]}
         rehypePlugins={[rehypeKatex]}
         components={markdownComponentsForTaskLines(taskLineIndexesInText(source, startLine), true)}
       >
@@ -617,6 +687,18 @@ export function TextReader({
     }
     const activeInBlock =
       activeLineIndex !== null && activeLineIndex >= block.startLine && activeLineIndex <= block.endLine;
+
+    if (block.type === "comment" && !activeInBlock) {
+      return (
+        <div
+          key={block.id}
+          onClick={() => setActiveLineIndex(block.startLine)}
+          className="markdown-live-block markdown-comment-line px-3 py-1 -mx-3 cursor-text"
+        >
+          {markdownCommentBody(block.text) || " "}
+        </div>
+      );
+    }
 
     if (activeInBlock && activeLine) {
       const blockLines = splitMarkdownLines(block.text);
@@ -639,6 +721,13 @@ export function TextReader({
             value={activeLineText}
             onClick={(e) => e.stopPropagation()}
             onChange={(e) => replaceLine(activeLine, e.target.value)}
+            onKeyDown={(e) => {
+              if ((e.metaKey || e.ctrlKey) && e.key === "/") {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleMarkdownCommentLine();
+              }
+            }}
             spellCheck={false}
             rows={Math.max(1, activeLineText.split("\n").length)}
             className="my-1 w-full resize-none border border-black dark:border-white bg-white dark:bg-black text-black dark:text-white font-mono text-sm leading-relaxed p-2 outline-none"
@@ -655,7 +744,7 @@ export function TextReader({
         className="markdown-live-block px-3 py-1 -mx-3 cursor-text"
       >
         <ReactMarkdown
-          remarkPlugins={[remarkGfm, remarkMath, remarkHighlight, remarkUnderline]}
+          remarkPlugins={[remarkGfm, remarkMath, remarkHighlight, remarkUnderline, remarkObsidianCommentLines]}
           rehypePlugins={[rehypeKatex]}
           components={markdownComponentsForTaskLines(taskLineIndexesInBlock(block), true)}
         >
@@ -706,7 +795,7 @@ export function TextReader({
               </div>
             )}
             <ReactMarkdown
-              remarkPlugins={[remarkGfm, remarkMath, remarkHighlight, remarkUnderline]}
+              remarkPlugins={[remarkGfm, remarkMath, remarkHighlight, remarkUnderline, remarkObsidianCommentLines]}
               rehypePlugins={[rehypeKatex]}
             >
               {markdownText}
