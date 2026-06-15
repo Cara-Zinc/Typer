@@ -11,7 +11,9 @@ color is reserved for earned rewards and selected companion accents.
   editing, and a compact briefing view.
 - Reading Table - opens EPUB, PDF, DOC/DOCX, Markdown, plain text, JSON, and
   YAML. Markdown supports GFM, task checkboxes, and KaTeX math.
-- Typer - typewriter-style writing surface.
+- Typer - typewriter-style writing surface with a chapter sidebar (each
+  chapter is a Markdown file under the connected vault's `Drafts/`) and a
+  margin-note column for per-paragraph sticky notes.
 - Magnifier - splits EPUB, Markdown, and text sources into part files under
   `.triptych/extracts/` in the connected vault.
 - Archiver - vault browser and document launcher.
@@ -41,6 +43,13 @@ Triptych stores user data locally through Tauri app data directories.
 - Pet and room data: `pets/pet.json`, `pets/room.json`.
 - Vault reader annotations: `<vault>/.triptych/reader-annotations.json`.
 - Magnifier extracts: `<vault>/.triptych/extracts/<source>/`.
+- Typer manuscript: `<vault>/Drafts/_index.json` (chapter metadata) plus one
+  `.md` file per chapter (timestamp-prefixed filename, first line is the
+  chapter title for legibility outside the app).
+- Typer margin notes: `<vault>/Drafts/_notes/<chapter-id>.json`. Each note
+  stores a 60-character snippet of its anchor line so it survives light
+  edits; deleted-paragraph notes are surfaced as an "orphan" section
+  rather than dropped silently.
 
 ## Current Roadmap
 

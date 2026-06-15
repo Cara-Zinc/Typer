@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { classifyPath } from "./readers/formats";
 import type { ReaderOpenRequest } from "./readers/readerTypes";
+import { useVault } from "../state/VaultContext";
 
 type TreeNode = {
   name: string;
@@ -24,7 +25,9 @@ type TreeNode = {
 };
 
 const EBOOK_EXTS = new Set(["epub", "pdf", "mobi", "azw3", "txt", "md"]);
-const VAULT_PREF_KEY = "triptych.archiver.vaultPath";
+// VAULT_PREF_KEY moved to VaultContext (kept its old name so existing
+// installs auto-restore). History stays local to Archiver since it owns
+// the picker UX.
 const VAULT_HISTORY_KEY = "triptych.archiver.vaultHistory";
 const VAULT_HISTORY_MAX = 3;
 
@@ -102,6 +105,7 @@ type Props = {
 };
 
 export function Archiver({ onOpenFile }: Props = {}) {
+  const { vaultPath, loaded: vaultLoaded, setVaultPath, clearVaultPath } = useVault();
   const [root, setRoot] = useState<TreeNode | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
@@ -186,72 +190,52 @@ export function Archiver({ onOpenFile }: Props = {}) {
       if (!selected || typeof selected !== "string") return;
       const ok = await connectToPath(selected);
       if (ok) {
-        try {
-          localStorage.setItem(VAULT_PREF_KEY, selected);
-        } catch {
-          /* localStorage write failures are non-fatal */
-        }
+        setVaultPath(selected);
         pushHistory(selected);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
-  }, [connectToPath, pushHistory]);
+  }, [connectToPath, pushHistory, setVaultPath]);
 
   // Connect from a clicked history entry. If the saved path no longer reads,
   // drop it from history so a stale entry doesn't linger.
   const handleConnectFromHistory = useCallback(async (path: string) => {
     const ok = await connectToPath(path);
     if (ok) {
-      try {
-        localStorage.setItem(VAULT_PREF_KEY, path);
-      } catch {
-        /* ignore */
-      }
+      setVaultPath(path);
       pushHistory(path);
     } else {
       removeHistory(path);
     }
-  }, [connectToPath, pushHistory, removeHistory]);
+  }, [connectToPath, pushHistory, removeHistory, setVaultPath]);
 
   const handleDisconnect = () => {
     setRoot(null);
     setSelectedPath(null);
     setVaultWritable(false);
     setError(null);
-    try {
-      localStorage.removeItem(VAULT_PREF_KEY);
-    } catch {
-      /* ignore */
-    }
+    clearVaultPath();
   };
 
-  // Auto-load the last connected vault on first mount, so the user's location
-  // is "memorized" across app restarts. If the saved path no longer reads,
-  // we clear it so we don't keep failing on every launch.
+  // Auto-load the vault from shared context on first mount. The context
+  // restores `vaultPath` from localStorage so this runs after a restart
+  // too. If the saved path no longer reads, clear it so we don't keep
+  // failing on every launch.
   useEffect(() => {
-    const saved = (() => {
-      try {
-        return localStorage.getItem(VAULT_PREF_KEY);
-      } catch {
-        return null;
-      }
-    })();
-    if (!saved) return;
+    if (!vaultLoaded) return;
+    if (!vaultPath) return;
+    if (root?.path === vaultPath) return;
     (async () => {
-      const ok = await connectToPath(saved);
+      const ok = await connectToPath(vaultPath);
       if (ok) {
-        pushHistory(saved);
+        pushHistory(vaultPath);
       } else {
-        try {
-          localStorage.removeItem(VAULT_PREF_KEY);
-        } catch {
-          /* ignore */
-        }
-        removeHistory(saved);
+        clearVaultPath();
+        removeHistory(vaultPath);
       }
     })();
-  }, [connectToPath, pushHistory, removeHistory]);
+  }, [vaultLoaded, vaultPath, root?.path, connectToPath, pushHistory, removeHistory, clearVaultPath]);
 
   const handleToggleDir = useCallback(async (node: TreeNode) => {
     if (node.type !== "directory") return;

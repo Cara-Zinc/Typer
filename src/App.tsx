@@ -12,8 +12,8 @@
 // Side-effect import of "./modes/home/pets" and "./modes/home/furniture"
 // populates the registries before first render.
 
-import { useCallback, useState } from "react";
-import { BookOpen, Type, ZoomIn, Archive, Award, Upload, Moon, Sun, Home as HomeIcon } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { BookOpen, Type, ZoomIn, Archive, Award, Upload, Moon, Sun, Home as HomeIcon, LayoutGrid } from "lucide-react";
 import { NavButton } from "./components/NavButton";
 import { ReadingTable } from "./modes/ReadingTable";
 import { Typer } from "./modes/Typer";
@@ -21,19 +21,27 @@ import { Magnifier } from "./modes/Magnifier";
 import { Archiver } from "./modes/Archiver";
 import { Habits } from "./modes/Habits";
 import { Home } from "./modes/Home";
+import { DeveloperAtlas } from "./modes/DeveloperAtlas";
 import { HabitsProvider } from "./state/HabitsContext";
 import { InventoryProvider } from "./state/InventoryContext";
 import { PetProvider } from "./state/PetContext";
 import { RoomLayoutProvider } from "./state/RoomLayoutContext";
 import { ThemeProvider, useTheme } from "./state/ThemeContext";
 import { ReaderAnnotationsProvider } from "./state/ReaderAnnotationsContext";
+import { VaultProvider } from "./state/VaultContext";
 import { makeStudyLayout } from "./modes/home/furniture/layouts";
 import type { ReaderOpenRequest } from "./modes/readers/readerTypes";
 // Side-effect imports — these MUST be present to populate the registries.
 import "./modes/home/pets";
 import "./modes/home/furniture";
 
-type Tab = "home" | "read" | "write" | "edit" | "archive" | "habits";
+type Tab = "home" | "read" | "write" | "edit" | "archive" | "habits" | "atlas";
+
+const DEVELOPER_ATLAS_HASH = "#/dev/atlas";
+
+function isDeveloperAtlasHash(): boolean {
+  return typeof window !== "undefined" && window.location.hash === DEVELOPER_ATLAS_HASH;
+}
 
 export default function App() {
   return (
@@ -46,8 +54,21 @@ export default function App() {
 function AppShell() {
   const { theme, toggle } = useTheme();
   // Home is the default landing tab — onboarding lives there for first-run.
-  const [activeTab, setActiveTab] = useState<Tab>("home");
+  const [activeTab, setActiveTab] = useState<Tab>(() => isDeveloperAtlasHash() ? "atlas" : "home");
+  const [showAtlasNav, setShowAtlasNav] = useState(() => import.meta.env.DEV || isDeveloperAtlasHash());
   const [pendingOpenRequest, setPendingOpenRequest] = useState<ReaderOpenRequest | null>(null);
+
+  useEffect(() => {
+    function onHashChange() {
+      if (isDeveloperAtlasHash()) {
+        setShowAtlasNav(true);
+        setActiveTab("atlas");
+      }
+    }
+    onHashChange();
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
 
   const requestOpenInReader = useCallback((request: ReaderOpenRequest) => {
     setPendingOpenRequest(request);
@@ -60,6 +81,14 @@ function AppShell() {
 
   const navigate = useCallback((target: "read" | "write" | "edit" | "archive" | "habits") => {
     setActiveTab(target);
+  }, []);
+
+  const openDeveloperAtlas = useCallback(() => {
+    setShowAtlasNav(true);
+    setActiveTab("atlas");
+    if (window.location.hash !== DEVELOPER_ATLAS_HASH) {
+      window.location.hash = DEVELOPER_ATLAS_HASH;
+    }
   }, []);
 
   return (
@@ -80,6 +109,12 @@ function AppShell() {
           <NavButton icon={<Archive size={18} />}   label="Archiver"      isActive={activeTab === "archive"} onClick={() => setActiveTab("archive")} />
           <div className="w-px bg-black dark:bg-white" />
           <NavButton icon={<Award size={18} />}     label="Habits"        isActive={activeTab === "habits"}  onClick={() => setActiveTab("habits")} />
+          {showAtlasNav && (
+            <>
+              <div className="w-px bg-black dark:bg-white" />
+              <NavButton icon={<LayoutGrid size={18} />} label="Atlas" isActive={activeTab === "atlas"} onClick={openDeveloperAtlas} />
+            </>
+          )}
         </nav>
         <div className="flex items-center gap-4">
           <button
@@ -105,6 +140,7 @@ function AppShell() {
           <PetProvider>
             <RoomLayoutProvider initialLayout={makeStudyLayout()}>
               <ReaderAnnotationsProvider>
+                <VaultProvider>
                 <main className="grow flex flex-col relative overflow-hidden">
                   <div className={`grow flex flex-col min-h-0 ${activeTab === "home"    ? "" : "hidden"}`}>
                     <Home onNavigate={navigate} />
@@ -124,7 +160,11 @@ function AppShell() {
                   <div className={`grow flex flex-col min-h-0 ${activeTab === "habits"  ? "" : "hidden"}`}>
                     <Habits />
                   </div>
+                  <div className={`grow flex flex-col min-h-0 ${activeTab === "atlas" ? "" : "hidden"}`}>
+                    <DeveloperAtlas />
+                  </div>
                 </main>
+                </VaultProvider>
               </ReaderAnnotationsProvider>
             </RoomLayoutProvider>
           </PetProvider>
