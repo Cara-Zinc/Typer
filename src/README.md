@@ -38,6 +38,11 @@ than opaque generated blobs.
 
 ## Deferred Work
 
+Pet hunger decays with real wall-clock time: `PetContext` stores a `lastTick`
+baseline in `pets/pet.json` and reconciles elapsed decay on load, on window
+focus/visibility, and on a 60s timer, so the pet gets hungry whether or not the
+app is open. Feeding (Habits Pet Food sub-tab) settles pending decay first.
+
 Track project-level status in the root `TODO.md`. Current deferred Home/Pet
-work includes hunger decay, cursor-follow throttling while Home is hidden, and
-token-gated furniture unlocks.
+work includes cursor-follow throttling while Home is hidden and token-gated
+furniture unlocks.

@@ -95,7 +95,7 @@ export function PetFood() {
               />
             </div>
             <span className="font-mono font-bold text-[11px] w-9 text-right tabular-nums">
-              {pet ? `${pet.hunger}%` : "—"}
+              {pet ? `${Math.round(pet.hunger)}%` : "—"}
             </span>
           </div>
         </div>

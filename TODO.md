@@ -60,6 +60,14 @@ review before expanding the feature set again.
       don't lose the note. Notes whose paragraph is gone fall into an
       "Orphan notes" section below the manuscript instead of disappearing.
       Persistence: `<vault>/Drafts/_notes/<chapter-id>.json` per chapter.
+- [x] Pet hunger decay: hunger now drops with real wall-clock time
+      (`HUNGER_DECAY_PER_HOUR`, default 3/h ≈ a daily check-in) via a
+      `lastTick` baseline in `pets/pet.json`. Decay is reconciled from
+      elapsed time on load and on window focus/visibility, plus a 60s
+      in-app timer, so the pet gets hungry whether or not the app is open.
+      Mood follows hunger (happy ≥70, hungry ≤25; a user-set `sleep` is
+      preserved). Feeding via the Habits Pet Food sub-tab settles pending
+      decay first, then adds the food's hunger value.
 
 ## Next Milestone - Stabilize & Publish
 
@@ -107,8 +115,8 @@ review before expanding the feature set again.
   hidden.
 - Habits catalog editing: add in-app reward create/rename/remove flows only if
   editing `rewards.ts` becomes annoying.
-- Home/Pet: add hunger decay, and gate cursor-follow behavior so hidden Home
-  views do less background work.
+- Home/Pet: gate cursor-follow behavior so hidden Home views do less background
+  work. (Hunger decay is done — see Completed.)
 - Home/Furniture: wire furniture prices into an unlock/purchase flow before
   letting every catalog item be added freely.
 - Reader/Magnifier: continue improving annotations, extraction metadata, and

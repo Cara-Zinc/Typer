@@ -1,8 +1,9 @@
 // PetContext.tsx — Current pet state, persisted to pets/pet.json.
 //
 // Same write-lock pattern as HabitsContext so two rapid feeds can't clobber
-// the file. Hunger is bounded 0–100. Mood is a free union — the renderer
-// decides how to interpret each value.
+// the file. Hunger is bounded 0–100 and decays with real wall-clock time
+// (`lastTick`), so the pet gets hungry whether or not the app is open. Mood is
+// derived from hunger (except a user-set 'sleep', which we leave alone).
 
 import {
   createContext,
@@ -19,15 +20,52 @@ import type { PetMood } from "../modes/home/pets/types";
 
 const PET_FILE = "pet.json";
 
+// Hunger lost per real hour. At 3/h a full pet (100) reaches the "hungry"
+// threshold (25) in ~25h and empties in ~33h — roughly a daily check-in.
+const HUNGER_DECAY_PER_HOUR = 3;
+// How often the in-app decay timer settles hunger while the app is open.
+// Offline time is reconciled from `lastTick` regardless of this interval.
+const TICK_MS = 60_000;
+
 export type PetRecord = {
   kindId: string;
   mood: PetMood;
   hunger: number;
   name: string;
   adoptedAt: string; // ISO date
+  lastTick: string; // ISO — when hunger was last settled (decay baseline)
 };
 
 const NULL_PET: PetRecord | null = null;
+
+function clampHunger(value: number): number {
+  return Math.max(0, Math.min(100, value));
+}
+
+// Mood follows hunger, but a deliberately-set 'sleep' is preserved so the
+// decay timer doesn't wake a sleeping pet.
+function moodForHunger(prev: PetMood, hunger: number): PetMood {
+  if (prev === "sleep") return "sleep";
+  if (hunger <= 25) return "hungry";
+  if (hunger >= 70) return "happy";
+  return "neutral";
+}
+
+// Apply elapsed-time hunger decay up to `nowMs` and re-baseline `lastTick`.
+// Pure: callers persist the result. Because decay is computed from elapsed
+// real time (not tick count), an irregular/throttled timer stays accurate.
+function decayTo(rec: PetRecord, nowMs: number): PetRecord {
+  const last = Date.parse(rec.lastTick);
+  const lastMs = Number.isFinite(last) ? last : nowMs;
+  const elapsedHours = Math.max(0, (nowMs - lastMs) / 3_600_000);
+  const hunger = clampHunger(rec.hunger - elapsedHours * HUNGER_DECAY_PER_HOUR);
+  return {
+    ...rec,
+    hunger,
+    mood: moodForHunger(rec.mood, hunger),
+    lastTick: new Date(nowMs).toISOString(),
+  };
+}
 
 async function readPet(): Promise<PetRecord | null> {
   const path = await petsFile(PET_FILE);
@@ -42,6 +80,9 @@ async function readPet(): Promise<PetRecord | null> {
       hunger: typeof parsed.hunger === "number" ? parsed.hunger : 70,
       name: parsed.name ?? "",
       adoptedAt: parsed.adoptedAt ?? new Date().toISOString(),
+      // Legacy records predate decay: treat "now" as the baseline so an old
+      // pet isn't instantly starved on first load after the update.
+      lastTick: parsed.lastTick ?? new Date().toISOString(),
     };
   } catch {
     return NULL_PET;
@@ -109,46 +150,70 @@ export function PetProvider({ children }: { children: ReactNode }) {
 
   const adopt = useCallback(
     async (kindId: string, name: string) => {
+      const now = new Date().toISOString();
       await lockedWrite(() => ({
         kindId,
         name,
         mood: "happy",
         hunger: 80,
-        adoptedAt: new Date().toISOString(),
+        adoptedAt: now,
+        lastTick: now,
       }));
     },
     [lockedWrite],
   );
 
+  // Every mutation first settles pending decay (so changes apply to the
+  // pet's *current* hunger, not a stale value) and re-baselines lastTick.
+  const settleWrite = useCallback(
+    (apply: (decayed: PetRecord) => PetRecord): Promise<PetRecord | null> =>
+      lockedWrite((current) => (current ? apply(decayTo(current, Date.now())) : current)),
+    [lockedWrite],
+  );
+
   const update = useCallback(
     async (patch: Partial<PetRecord>) => {
-      await lockedWrite((current) => (current ? { ...current, ...patch } : current));
+      await settleWrite((decayed) => ({ ...decayed, ...patch }));
     },
-    [lockedWrite],
+    [settleWrite],
   );
 
   const adjustHunger = useCallback(
     async (delta: number): Promise<number> => {
-      const result = await lockedWrite((current) => {
-        if (!current) return current;
-        const hunger = Math.max(0, Math.min(100, current.hunger + delta));
-        // Mood auto-shifts when hunger crosses thresholds, unless the user
-        // has explicitly set 'sleep' (we leave that alone).
-        let mood = current.mood;
-        if (mood !== "sleep") {
-          if (hunger >= 70 && delta > 0) mood = "happy";
-          else if (hunger <= 25) mood = "hungry";
-          else if (mood === "happy" || mood === "hungry") mood = "neutral";
-        }
-        return { ...current, hunger, mood };
+      const result = await settleWrite((decayed) => {
+        const hunger = clampHunger(decayed.hunger + delta);
+        return { ...decayed, hunger, mood: moodForHunger(decayed.mood, hunger) };
       });
       return result?.hunger ?? 0;
     },
-    [lockedWrite],
+    [settleWrite],
   );
 
   const feed = useCallback((amount: number) => adjustHunger(amount), [adjustHunger]);
   const drain = useCallback((amount: number) => adjustHunger(-amount), [adjustHunger]);
+
+  // Settle decay with no other change — used by the timer and focus/visibility
+  // catch-ups so hunger keeps dropping while the app sits open or returns from
+  // the background (where timers get throttled or suspended).
+  const tick = useCallback(async () => {
+    await settleWrite((decayed) => decayed);
+  }, [settleWrite]);
+
+  useEffect(() => {
+    if (!loaded) return;
+    void tick(); // reconcile time elapsed while the app/pet was last closed
+    const id = window.setInterval(() => void tick(), TICK_MS);
+    const onVisible = () => {
+      if (!document.hidden) void tick();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
+  }, [loaded, tick]);
 
   return (
     <PetContext.Provider value={{ pet, loaded, adopt, update, feed, drain }}>
