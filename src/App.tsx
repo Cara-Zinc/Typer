@@ -93,7 +93,7 @@ function AppShell() {
 
   return (
     <div
-      className={`${theme === "dark" ? "dark" : ""} min-h-screen h-screen bg-white text-black dark:bg-black dark:text-white font-sans flex flex-col`}
+      className={`${theme === "dark" ? "dark" : ""} h-full bg-white text-black dark:bg-black dark:text-white font-sans flex flex-col`}
     >
       <header className="flex justify-between items-center p-4 border-b border-black dark:border-white shrink-0">
         <div className="font-serif text-2xl font-bold tracking-tighter uppercase">Triptych</div>

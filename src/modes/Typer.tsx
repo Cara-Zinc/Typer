@@ -1108,40 +1108,40 @@ export function Typer() {
   );
 
   const renderQuillSvg = () => (
+    // Content is drawn in a 0 0 800 400 space; the enlarged viewBox shrinks the
+    // whole quill to 0.75x on screen (800 / 1066.667), kept centered
+    // horizontally and anchored to the bottom (ground line) via xMidYMax.
     <svg
       ref={svgRef}
       xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 120 1200 560"
+      viewBox="-133.333 -133.333 1066.667 533.333"
       className="typer-svg h-full w-full overflow-visible"
       preserveAspectRatio="xMidYMax meet"
     >
-      <path d="M 110 635 L 1090 635" fill="none" stroke="black" strokeWidth="6" />
-      <path d="M 190 570 Q 420 525 710 545 Q 830 555 990 530" fill="none" stroke="black" strokeWidth="2" strokeDasharray="8 10" />
-      <g transform="translate(828, 420)">
-        <ellipse cx="86" cy="170" rx="92" ry="17" fill="white" stroke="black" strokeWidth="3" />
-        <path
-          d="M 34 62 L 50 36 Q 86 22 122 36 L 138 62 L 126 158 Q 86 178 46 158 Z"
-          fill="white"
-          stroke="black"
-          strokeWidth="5"
-          strokeLinejoin="round"
-        />
-        <path d="M 48 67 H 124" fill="none" stroke="black" strokeWidth="2" />
-        <path d="M 54 80 H 118 M 58 94 H 114" fill="none" stroke="black" strokeWidth="1.5" />
-        <g
-          key={`quill-ink-${quillMotion.kind}-${quillMotion.tick}`}
-          className={[
-            "quill-ink",
-            quillMotion.kind === "dip" ? "quill-ink-dip" : "",
-          ].join(" ")}
-          opacity="0.72"
-        >
-          <rect x="54" y="108" width="64" height="28" rx="4" fill="black" />
-          <path d="M 62 114 H 110 M 62 124 H 100" fill="none" stroke="white" strokeWidth="2" />
-        </g>
-        <rect x="56" y="18" width="60" height="24" rx="4" fill="white" stroke="black" strokeWidth="4" />
-        <rect x="68" y="6" width="36" height="18" rx="3" fill="white" stroke="black" strokeWidth="3" />
+      <defs>
+        {/* Feather outline, reused to clip the internal barb texture. */}
+        <clipPath id="quillFeatherShape">
+          <path d="M 180 320 C 150 270 170 200 250 140 L 230 150 C 280 100 360 60 450 40 L 430 50 C 500 30 570 30 620 40 C 550 70 480 140 420 190 L 430 180 C 350 240 280 290 230 310 L 240 295 C 200 315 190 320 180 320 Z" />
+        </clipPath>
+      </defs>
+
+      {/* Ambient flourish + baseline ripples. */}
+      <g opacity="0.8">
+        <path d="M 80 350 C 50 270 150 210 250 240 S 450 340 550 310 S 700 240 750 260" fill="none" stroke="black" strokeWidth="1.5" strokeDasharray="4 8" strokeLinecap="round" />
+        <path d="M 40 375 Q 200 355 400 380 T 760 375" fill="none" stroke="black" strokeWidth="2" strokeLinecap="round" />
+        <path d="M 100 385 Q 300 370 500 388 T 700 385" fill="none" stroke="black" strokeWidth="1" strokeLinecap="round" opacity="0.6" />
+        <path d="M 250 395 Q 400 385 550 395" fill="none" stroke="black" strokeWidth="0.5" strokeLinecap="round" opacity="0.3" />
       </g>
+
+      {/* Four-point sparkles. */}
+      <g fill="black">
+        <path d="M 110 322 Q 110 330 118 330 Q 110 330 110 338 Q 110 330 102 330 Q 110 330 110 322 Z" />
+        <path d="M 600 94 Q 600 100 606 100 Q 600 100 600 106 Q 600 100 594 100 Q 600 100 600 94 Z" />
+        <path d="M 690 225 Q 690 230 695 230 Q 690 230 690 235 Q 690 230 685 230 Q 690 230 690 225 Z" />
+      </g>
+
+      {/* Quill — the whole pen jitters on each keystroke (stroke) and reaches
+          toward the well on a newline (dip). */}
       <g
         key={`quill-pen-${quillMotion.kind}-${quillMotion.tick}`}
         className={[
@@ -1149,36 +1149,82 @@ export function Typer() {
           quillMotion.kind === "stroke" ? "quill-pen-stroke" : "",
           quillMotion.kind === "dip" ? "quill-pen-dip" : "",
         ].join(" ")}
-        transform="translate(0, 0)"
       >
-        <g transform="translate(72, 68) scale(0.82)">
-          <path
-            d="M 268 466 C 360 296 514 186 718 138 C 642 258 508 392 354 508 Z"
-            fill="white"
-            stroke="black"
-            strokeWidth="5"
-            strokeLinejoin="round"
-          />
-          <path
-            d="M 316 454 C 424 326 560 220 690 158"
-            fill="none"
-            stroke="black"
-            strokeWidth="3"
-            strokeLinecap="round"
-          />
-          <path
-            d="M 360 414 L 470 444 M 402 368 L 526 400 M 450 322 L 590 352 M 504 272 L 644 296 M 560 224 L 676 242"
-            fill="none"
-            stroke="black"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-          />
-          <path d="M 354 508 L 246 596" fill="none" stroke="black" strokeWidth="9" strokeLinecap="round" />
-          <path d="M 248 596 L 224 624" fill="none" stroke="black" strokeWidth="4" strokeLinecap="round" />
-          <path d="M 216 626 Q 224 615 232 626 Q 224 636 216 626 Z" fill="black" />
+        {/* Feather body fills with page color to mask the ambient lines. */}
+        <path
+          d="M 180 320 C 150 270 170 200 250 140 L 230 150 C 280 100 360 60 450 40 L 430 50 C 500 30 570 30 620 40 C 550 70 480 140 420 190 L 430 180 C 350 240 280 290 230 310 L 240 295 C 200 315 190 320 180 320 Z"
+          fill="white"
+          stroke="black"
+          strokeWidth="2"
+          strokeLinejoin="round"
+        />
+        <g clipPath="url(#quillFeatherShape)">
+          <path d="M 180 320 C 300 200 450 100 620 40" fill="none" stroke="black" strokeWidth="3.5" strokeLinecap="round" />
+          <g fill="none" stroke="black" strokeWidth="1.2">
+            <path d="M 210 280 Q 130 240 100 150" />
+            <path d="M 240 248 Q 160 208 130 118" />
+            <path d="M 270 216 Q 190 176 160 86" />
+            <path d="M 300 184 Q 220 144 190 54" />
+            <path d="M 330 152 Q 250 112 220 22" />
+            <path d="M 360 120 Q 280 80 250 -10" />
+            <path d="M 390 88 Q 310 48 280 -42" />
+            <path d="M 420 56 Q 340 16 310 -74" />
+            <path d="M 460 30 Q 380 -10 350 -100" />
+            <path d="M 500 10 Q 420 -30 390 -120" />
+          </g>
+          <g fill="none" stroke="black" strokeWidth="1.2">
+            <path d="M 210 280 Q 300 320 400 240" />
+            <path d="M 240 248 Q 330 288 430 208" />
+            <path d="M 270 216 Q 360 256 460 176" />
+            <path d="M 300 184 Q 390 224 490 144" />
+            <path d="M 330 152 Q 420 192 520 112" />
+            <path d="M 360 120 Q 450 160 550 80" />
+            <path d="M 390 88 Q 480 128 580 48" />
+            <path d="M 420 56 Q 510 96 610 16" />
+            <path d="M 460 30 Q 550 70 650 -10" />
+            <path d="M 500 10 Q 590 50 690 -30" />
+          </g>
         </g>
+        {/* Metal dip nib. */}
+        <path d="M 172 312 Q 180 320 188 328 L 183 333 Q 175 325 167 317 Z" fill="white" stroke="black" strokeWidth="1.5" />
+        <path d="M 175 315 L 185 325 L 128 362 C 135 345 150 330 175 315 Z" fill="white" stroke="black" strokeWidth="2" strokeLinejoin="round" />
+        <line x1="128" y1="362" x2="160" y2="335" stroke="black" strokeWidth="1" />
+        <circle cx="160" cy="335" r="2.5" fill="white" stroke="black" strokeWidth="1.5" />
+        {/* Falling ink drop + splatter. */}
+        <path d="M 126 370 C 126 380 122 385 126 385 C 130 385 126 380 126 370 Z" fill="black" />
+        <circle cx="132" cy="390" r="1" fill="black" />
+        <circle cx="118" cy="386" r="0.8" fill="black" />
       </g>
-      <path d="M 216 632 Q 320 608 470 620 Q 650 636 790 602" fill="none" stroke="black" strokeWidth="2" />
+
+      {/* Inkwell — wide flat glass bottle with a layered cork stopper. */}
+      <g>
+        <ellipse cx="650" cy="355" rx="90" ry="12" fill="none" stroke="black" strokeWidth="1.5" />
+        <ellipse cx="650" cy="355" rx="75" ry="8" fill="none" stroke="black" strokeWidth="1" />
+        <ellipse cx="650" cy="355" rx="55" ry="4" fill="none" stroke="black" strokeWidth="0.5" />
+        <rect x="595" y="290" width="110" height="60" rx="15" ry="15" fill="white" stroke="black" strokeWidth="2.5" />
+        <rect x="603" y="298" width="94" height="44" rx="8" ry="8" fill="none" stroke="black" strokeWidth="1" opacity="0.6" />
+        {/* Ink pool — ripples (scale pulse) when the quill dips on a newline. */}
+        <g
+          key={`quill-ink-${quillMotion.kind}-${quillMotion.tick}`}
+          className={[
+            "quill-ink",
+            quillMotion.kind === "dip" ? "quill-ink-dip" : "",
+          ].join(" ")}
+        >
+          <path d="M 603 334 L 697 334 C 697 338 693 342 689 342 L 611 342 C 607 342 603 338 603 334 Z" fill="black" />
+        </g>
+        <line x1="608" y1="305" x2="608" y2="325" stroke="black" strokeWidth="2" strokeLinecap="round" />
+        <line x1="692" y1="308" x2="692" y2="330" stroke="black" strokeWidth="1.5" strokeLinecap="round" />
+        <rect x="625" y="310" width="50" height="20" rx="3" fill="white" stroke="black" strokeWidth="1.5" />
+        <path d="M 630 316 Q 645 314 650 316 T 670 316" fill="none" stroke="black" strokeWidth="1.2" strokeLinecap="round" />
+        <path d="M 635 324 Q 645 326 655 324 T 665 324" fill="none" stroke="black" strokeWidth="0.8" strokeLinecap="round" />
+        <path d="M 635 290 L 635 265 C 635 260 665 260 665 265 L 665 290 Z" fill="white" stroke="black" strokeWidth="2.5" />
+        <rect x="628" y="257" width="44" height="10" rx="3" fill="white" stroke="black" strokeWidth="2.5" />
+        <line x1="640" y1="270" x2="640" y2="283" stroke="black" strokeWidth="1.5" strokeLinecap="round" />
+        <path d="M 638 257 L 638 240 C 638 235 662 235 662 240 L 662 257 Z" fill="white" stroke="black" strokeWidth="2" />
+        <rect x="633" y="233" width="34" height="8" rx="2" fill="white" stroke="black" strokeWidth="2" />
+        <path d="M 642 233 L 642 223 C 642 220 658 220 658 223 L 658 233 Z" fill="white" stroke="black" strokeWidth="1.5" />
+      </g>
     </svg>
   );
 
