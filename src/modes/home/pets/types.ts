@@ -5,6 +5,7 @@
 
 import type { ReactNode } from "react";
 import type { Gaze } from "../../../state/usePetBehavior";
+import type { IllustrationTone } from "../illustration";
 
 export type PetMood =
   | "neutral"
@@ -29,6 +30,8 @@ export type PetRenderState = {
   /** CSS color used ONLY when mood='happy' AND hunger>50 — see the
    *  project-wide "color = reward" rule from CLAUDE.md. */
   accent: string | null;
+  /** Mono is the current app default; color preserves illustration masters. */
+  tone?: IllustrationTone;
 };
 
 export type PetKind = {

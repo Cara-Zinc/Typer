@@ -30,12 +30,19 @@ Add furniture by creating or editing a registration in
 `modes/home/furniture/items.tsx`. `RoomEditor` reads the registry and groups
 items by category automatically.
 
-The current visual constraint for pet and furniture SVGs is simple primitives:
-prefer `rect`, `circle`, `ellipse`, and `line`; avoid complex path-heavy art
-unless the design direction changes.
+The current visual direction for pet and furniture SVGs is a maintainable
+"literary grayscale diorama": layered vector shapes, hatching, shadows, and
+state-aware details. `path`, `clipPath`, `mask`, and `pattern` are fine when
+they make an illustration clearer, but keep the forms hand-editable rather
+than opaque generated blobs.
 
 ## Deferred Work
 
+Pet hunger decays with real wall-clock time: `PetContext` stores a `lastTick`
+baseline in `pets/pet.json` and reconciles elapsed decay on load, on window
+focus/visibility, and on a 60s timer, so the pet gets hungry whether or not the
+app is open. Feeding (Habits Pet Food sub-tab) settles pending decay first.
+
 Track project-level status in the root `TODO.md`. Current deferred Home/Pet
-work includes hunger decay, cursor-follow throttling while Home is hidden, and
-token-gated furniture unlocks.
+work includes cursor-follow throttling while Home is hidden and token-gated
+furniture unlocks.

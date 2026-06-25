@@ -230,7 +230,7 @@ function BriefingView({ pet }: { pet: NonNullable<ReturnType<typeof usePet>["pet
           <pre className="m-0 leading-relaxed italic">
 {`◇ companion
   ${pet.name} (${pet.kindId})
-  hunger ............. ${String(pet.hunger + "%").padStart(6)}
+  hunger ............. ${String(Math.round(pet.hunger) + "%").padStart(6)}
   mood ............... ${String(pet.mood).padStart(8)}`}
           </pre>
         </div>

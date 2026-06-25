@@ -1,13 +1,14 @@
-import { useEffect, useMemo, useRef, useState, type ComponentProps, type MouseEvent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
-import { Highlighter, ListChecks, Strikethrough, Underline } from "lucide-react";
+import { Highlighter, ListChecks, MessageSquareOff, Strikethrough, Underline } from "lucide-react";
 import { visit, SKIP } from "unist-util-visit";
 import type { Root, Text } from "mdast";
 import "katex/dist/katex.min.css";
 import { ReaderShell, type ReaderTheme, type SplitMode } from "./ReaderShell";
+import { MarkdownLiveEditor, type MarkdownLiveEditorHandle } from "./MarkdownLiveEditor";
 import type { TextFormat } from "./formats";
 
 // Tiny remark plugin: convert `==text==` runs in plain text nodes into a
@@ -81,6 +82,32 @@ function remarkUnderline() {
       next.forEach((child) => walk(child as { children?: unknown[] }));
     };
     walk(tree as { children?: unknown[] });
+  };
+}
+
+function remarkObsidianCommentLines() {
+  return (tree: Root) => {
+    visit(tree, "paragraph", (node, index, parent) => {
+      if (!parent || typeof index !== "number") return;
+      const children = "children" in node ? node.children : [];
+      if (
+        children.length !== 1 ||
+        children[0].type !== "text"
+      ) {
+        return;
+      }
+      const body = markdownCommentBody(children[0].value);
+      if (body === null) return;
+      parent.children.splice(index, 1, {
+        type: "obsidianCommentLine",
+        data: {
+          hName: "div",
+          hProperties: { className: "markdown-comment-line" },
+        },
+        children: [{ type: "text", value: body || " " }],
+      } as never);
+      return [SKIP, index + 1];
+    });
   };
 }
 
@@ -170,148 +197,10 @@ const FORMAT_LABEL: Record<TextFormat, string> = {
   yaml: "YAML",
 };
 
-const TASK_LINE_RE = /^(\s*(?:[-*+]|\d+[.)])\s+\[)( |x|X)(\]\s*)/;
-
-type MarkdownLine = {
-  text: string;
-  start: number;
-  end: number;
-};
-
-type MarkdownBlock = {
-  id: string;
-  type: "blank" | "code" | "heading" | "list" | "table" | "paragraph";
-  startLine: number;
-  endLine: number;
-  startOffset: number;
-  endOffset: number;
-  text: string;
-};
-
-function splitMarkdownLines(source: string): MarkdownLine[] {
-  if (source.length === 0) return [{ text: "", start: 0, end: 0 }];
-  const rawLines = source.split("\n");
-  let offset = 0;
-  return rawLines.map((raw, index) => {
-    const hasNewline = index < rawLines.length - 1;
-    const text = hasNewline ? `${raw}\n` : raw;
-    const line = { text, start: offset, end: offset + text.length };
-    offset = line.end;
-    return line;
-  });
-}
-
-function plainLine(line: MarkdownLine) {
-  return line.text.replace(/\n$/, "");
-}
-
-function isBlankLine(line: MarkdownLine) {
-  return plainLine(line).trim() === "";
-}
-
-function isFenceStart(line: MarkdownLine) {
-  return plainLine(line).match(/^ {0,3}(`{3,}|~{3,})/);
-}
-
-function isFenceEnd(line: MarkdownLine, marker: string) {
-  return plainLine(line).match(new RegExp(`^ {0,3}${marker[0]}{${marker.length},}\\s*$`));
-}
-
-function isTableStart(lines: MarkdownLine[], index: number) {
-  const current = plainLine(lines[index] ?? { text: "", start: 0, end: 0 });
-  const next = plainLine(lines[index + 1] ?? { text: "", start: 0, end: 0 });
-  return current.includes("|") && /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(next);
-}
-
-function startsBlock(lines: MarkdownLine[], index: number) {
-  const line = lines[index];
-  if (!line || isBlankLine(line)) return true;
-  const text = plainLine(line);
-  return Boolean(
-    isFenceStart(line) ||
-    isTableStart(lines, index) ||
-    /^ {0,3}#{1,6}\s+/.test(text) ||
-    /^(\s*)([-*+]|\d+[.)])\s+/.test(text),
-  );
-}
-
-function makeBlock(source: string, lines: MarkdownLine[], startLine: number, endLine: number, type: MarkdownBlock["type"]): MarkdownBlock {
-  const startOffset = lines[startLine].start;
-  const endOffset = lines[endLine].end;
-  return {
-    id: String(startOffset),
-    type,
-    startLine,
-    endLine,
-    startOffset,
-    endOffset,
-    text: source.slice(startOffset, endOffset),
-  };
-}
-
-function parseMarkdownBlocks(source: string): MarkdownBlock[] {
-  const lines = splitMarkdownLines(source);
-  const blocks: MarkdownBlock[] = [];
-  let i = 0;
-
-  while (i < lines.length) {
-    if (isBlankLine(lines[i])) {
-      const start = i;
-      while (i + 1 < lines.length && isBlankLine(lines[i + 1])) i += 1;
-      blocks.push(makeBlock(source, lines, start, i, "blank"));
-      i += 1;
-      continue;
-    }
-
-    const fence = isFenceStart(lines[i]);
-    if (fence) {
-      const start = i;
-      const marker = fence[1];
-      i += 1;
-      while (i < lines.length && !isFenceEnd(lines[i], marker)) i += 1;
-      if (i < lines.length) i += 1;
-      blocks.push(makeBlock(source, lines, start, Math.max(start, i - 1), "code"));
-      continue;
-    }
-
-    if (isTableStart(lines, i)) {
-      const start = i;
-      i += 2;
-      while (i < lines.length && plainLine(lines[i]).includes("|") && !isBlankLine(lines[i])) i += 1;
-      blocks.push(makeBlock(source, lines, start, i - 1, "table"));
-      continue;
-    }
-
-    if (/^ {0,3}#{1,6}\s+/.test(plainLine(lines[i]))) {
-      blocks.push(makeBlock(source, lines, i, i, "heading"));
-      i += 1;
-      continue;
-    }
-
-    const listMatch = plainLine(lines[i]).match(/^(\s*)([-*+]|\d+[.)])\s+/);
-    if (listMatch) {
-      const start = i;
-      const indent = listMatch[1].length;
-      i += 1;
-      while (
-        i < lines.length &&
-        !isBlankLine(lines[i]) &&
-        !plainLine(lines[i]).match(new RegExp(`^\\s{0,${indent}}(?:[-*+]|\\d+[.)])\\s+`)) &&
-        (/^\s+/.test(plainLine(lines[i])) || !startsBlock(lines, i))
-      ) {
-        i += 1;
-      }
-      blocks.push(makeBlock(source, lines, start, i - 1, "list"));
-      continue;
-    }
-
-    const start = i;
-    i += 1;
-    while (i < lines.length && !startsBlock(lines, i)) i += 1;
-    blocks.push(makeBlock(source, lines, start, i - 1, "paragraph"));
-  }
-
-  return blocks;
+function markdownCommentBody(text: string): string | null {
+  const trimmed = text.trim();
+  if (!trimmed.startsWith("%%") || !trimmed.endsWith("%%") || trimmed.length < 4) return null;
+  return trimmed.slice(2, -2).trim();
 }
 
 export function TextReader({
@@ -336,10 +225,9 @@ export function TextReader({
   markdownSaveStatus = "saved",
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editorRef = useRef<MarkdownLiveEditorHandle>(null);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [activeLineIndex, setActiveLineIndex] = useState<number | null>(null);
 
   const text = useMemo(() => {
     try {
@@ -371,21 +259,6 @@ export function TextReader({
     () => (format === "md" ? normalizeMarkdownCodeDelimiters(markdownSource) : markdownSource),
     [markdownSource, format],
   );
-  const markdownBlocks = useMemo(
-    () => (isWriteMode ? parseMarkdownBlocks(draft) : []),
-    [draft, isWriteMode],
-  );
-  const markdownLines = useMemo(
-    () => (isWriteMode ? splitMarkdownLines(draft) : []),
-    [draft, isWriteMode],
-  );
-  const activeLine = activeLineIndex === null ? null : markdownLines[activeLineIndex] ?? null;
-
-  useEffect(() => {
-    if (activeLineIndex === null || activeLineIndex < markdownLines.length) return;
-    setActiveLineIndex(markdownLines.length > 0 ? markdownLines.length - 1 : null);
-  }, [activeLineIndex, markdownLines.length]);
-
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
@@ -396,7 +269,7 @@ export function TextReader({
     onScroll();
     el.addEventListener("scroll", onScroll, { passive: true });
     return () => el.removeEventListener("scroll", onScroll);
-  }, [formattedText, text, markdownText, isWriteMode, markdownBlocks.length, markdownLines.length]);
+  }, [formattedText, text, markdownText, isWriteMode, draft]);
 
   const pageBy = (dir: 1 | -1) => {
     const el = scrollRef.current;
@@ -406,120 +279,6 @@ export function TextReader({
 
   const themeClass = theme === "dark" ? "reader-dark" : "";
   const markdownColumnClass = split === 1 ? "md-reader-column" : "md-reader-column-split";
-
-  const replaceLine = (line: MarkdownLine, nextText: string) => {
-    const trailingNewline = line.text.endsWith("\n") ? "\n" : "";
-    setDraft(`${draft.slice(0, line.start)}${nextText}${trailingNewline}${draft.slice(line.end)}`);
-  };
-
-  const applyMarkdownWrap = (before: string, after: string, placeholder: string) => {
-    const textarea = textareaRef.current;
-    if (!textarea || !activeLine) return;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const lineText = plainLine(activeLine);
-    const selected = lineText.slice(start, end) || placeholder;
-    replaceLine(activeLine, `${lineText.slice(0, start)}${before}${selected}${after}${lineText.slice(end)}`);
-    requestAnimationFrame(() => {
-      textarea.focus();
-      textarea.setSelectionRange(start + before.length, start + before.length + selected.length);
-    });
-  };
-
-  const insertTaskCheckbox = () => {
-    const textarea = textareaRef.current;
-    if (!textarea || !activeLine) {
-      const prefix = draft.length > 0 && !draft.endsWith("\n") ? "\n" : "";
-      setDraft(`${draft}${prefix}- [ ] task`);
-      setActiveLineIndex(markdownLines.length);
-      return;
-    }
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const lineText = plainLine(activeLine);
-    const selected = lineText.slice(start, end);
-
-    if (selected) {
-      const replacement = selected
-        .split("\n")
-        .map((line) => (TASK_LINE_RE.test(line) ? line : `- [ ] ${line.replace(/^\s*(?:[-*+]|\d+[.)])\s+/, "")}`))
-        .join("\n");
-      replaceLine(activeLine, `${lineText.slice(0, start)}${replacement}${lineText.slice(end)}`);
-      requestAnimationFrame(() => {
-        textarea.focus();
-        textarea.setSelectionRange(start, start + replacement.length);
-      });
-      return;
-    }
-
-    const needsLineBreak = start > 0 && lineText[start - 1] !== "\n";
-    const insertion = `${needsLineBreak ? "\n" : ""}- [ ] task`;
-    const nextLine = `${lineText.slice(0, start)}${insertion}${lineText.slice(end)}`;
-    const taskStart = start + insertion.length - "task".length;
-    replaceLine(activeLine, nextLine);
-    requestAnimationFrame(() => {
-      textarea.focus();
-      textarea.setSelectionRange(taskStart, taskStart + "task".length);
-    });
-  };
-
-  const toggleTaskCheckboxAtLine = (lineIndex: number, checked: boolean) => {
-    const lines = draft.split("\n");
-    lines[lineIndex] = lines[lineIndex].replace(TASK_LINE_RE, `$1${checked ? "x" : " "}$3`);
-    setDraft(lines.join("\n"));
-  };
-
-  const taskLineIndexesInBlock = (block: MarkdownBlock) =>
-    draft
-      .slice(block.startOffset, block.endOffset)
-      .split("\n")
-      .map((line, index) => (TASK_LINE_RE.test(line) ? block.startLine + index : -1))
-      .filter((index) => index >= 0);
-
-  const markdownComponentsForTaskLines = (taskLineIndexes: number[], interactive: boolean) => {
-    let renderedTaskInputIndex = 0;
-    return {
-      input({ type, checked, disabled: _disabled, ...props }: ComponentProps<"input">) {
-        if (type !== "checkbox") return <input type={type} checked={checked} {...props} />;
-        const lineIndex = taskLineIndexes[renderedTaskInputIndex];
-        renderedTaskInputIndex += 1;
-        if (!interactive || lineIndex === undefined) {
-          return (
-            <input
-              {...props}
-              type="checkbox"
-              checked={Boolean(checked)}
-              disabled
-              onClick={(e) => e.stopPropagation()}
-            />
-          );
-        }
-        return (
-          <input
-            {...props}
-            type="checkbox"
-            checked={Boolean(checked)}
-            onClick={(e) => e.stopPropagation()}
-            onChange={(e) => toggleTaskCheckboxAtLine(lineIndex, e.currentTarget.checked)}
-          />
-        );
-      },
-    };
-  };
-
-  const taskLineIndexesInText = (source: string, startLine: number) =>
-    source
-      .split("\n")
-      .map((line, index) => (TASK_LINE_RE.test(line) ? startLine + index : -1))
-      .filter((index) => index >= 0);
-
-  const focusLineFromBlockClick = (block: MarkdownBlock, event: MouseEvent<HTMLElement>) => {
-    const lineCount = Math.max(1, block.endLine - block.startLine + 1);
-    const rect = event.currentTarget.getBoundingClientRect();
-    const ratio = rect.height > 0 ? (event.clientY - rect.top) / rect.height : 0;
-    const localLine = Math.min(lineCount - 1, Math.max(0, Math.floor(ratio * lineCount)));
-    setActiveLineIndex(block.startLine + localLine);
-  };
 
   const markdownToolbar = isWritableMarkdown ? (
     <div className="flex items-center gap-2">
@@ -549,7 +308,7 @@ export function TextReader({
         <div className="flex items-center gap-1 border border-black dark:border-white px-1 py-0.5">
           <button
             type="button"
-            onClick={() => applyMarkdownWrap("==", "==", "highlight")}
+            onClick={() => editorRef.current?.wrapSelection("==", "==", "highlight")}
             className="p-1 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
             title="Highlight selection"
             aria-label="Highlight selection"
@@ -558,7 +317,7 @@ export function TextReader({
           </button>
           <button
             type="button"
-            onClick={() => applyMarkdownWrap("<u>", "</u>", "underline")}
+            onClick={() => editorRef.current?.wrapSelection("<u>", "</u>", "underline")}
             className="p-1 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
             title="Underline selection"
             aria-label="Underline selection"
@@ -567,7 +326,7 @@ export function TextReader({
           </button>
           <button
             type="button"
-            onClick={() => applyMarkdownWrap("~~", "~~", "strikethrough")}
+            onClick={() => editorRef.current?.wrapSelection("~~", "~~", "strikethrough")}
             className="p-1 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
             title="Strikethrough selection"
             aria-label="Strikethrough selection"
@@ -576,12 +335,21 @@ export function TextReader({
           </button>
           <button
             type="button"
-            onClick={insertTaskCheckbox}
+            onClick={() => editorRef.current?.insertTask()}
             className="p-1 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
             title="Insert checkbox task"
             aria-label="Insert checkbox task"
           >
             <ListChecks size={13} />
+          </button>
+          <button
+            type="button"
+            onClick={() => editorRef.current?.toggleComment()}
+            className="p-1 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
+            title="Toggle Obsidian comment line (⌘/)"
+            aria-label="Toggle Obsidian comment line"
+          >
+            <MessageSquareOff size={13} />
           </button>
         </div>
       )}
@@ -596,74 +364,6 @@ export function TextReader({
       </span>
     </div>
   ) : null;
-
-  const renderMarkdownSegment = (source: string, startLine: number, key: string) => {
-    if (source.trim() === "") return null;
-    return (
-      <ReactMarkdown
-        key={key}
-        remarkPlugins={[remarkGfm, remarkMath, remarkHighlight, remarkUnderline]}
-        rehypePlugins={[rehypeKatex]}
-        components={markdownComponentsForTaskLines(taskLineIndexesInText(source, startLine), true)}
-      >
-        {normalizeMarkdownCodeDelimiters(source)}
-      </ReactMarkdown>
-    );
-  };
-
-  const renderMarkdownBlock = (block: MarkdownBlock) => {
-    if (block.type === "blank") {
-      return <div key={block.id} className="h-4" onClick={() => setActiveLineIndex(block.startLine)} />;
-    }
-    const activeInBlock =
-      activeLineIndex !== null && activeLineIndex >= block.startLine && activeLineIndex <= block.endLine;
-
-    if (activeInBlock && activeLine) {
-      const blockLines = splitMarkdownLines(block.text);
-      const localActiveLine = activeLineIndex - block.startLine;
-      const beforeText = blockLines.slice(0, localActiveLine).map((line) => line.text).join("");
-      const afterText = blockLines.slice(localActiveLine + 1).map((line) => line.text).join("");
-      const activeLineText = plainLine(activeLine);
-
-      return (
-        <div
-          key={block.id}
-          onClick={(e) => focusLineFromBlockClick(block, e)}
-          className="markdown-live-block px-3 py-1 -mx-3 cursor-text"
-        >
-          {renderMarkdownSegment(beforeText, block.startLine, `${block.id}-before`)}
-          <textarea
-            key={`${block.id}-${activeLineIndex}`}
-            ref={textareaRef}
-            autoFocus
-            value={activeLineText}
-            onClick={(e) => e.stopPropagation()}
-            onChange={(e) => replaceLine(activeLine, e.target.value)}
-            spellCheck={false}
-            rows={Math.max(1, activeLineText.split("\n").length)}
-            className="my-1 w-full resize-none border border-black dark:border-white bg-white dark:bg-black text-black dark:text-white font-mono text-sm leading-relaxed p-2 outline-none"
-          />
-          {renderMarkdownSegment(afterText, activeLineIndex + 1, `${block.id}-after`)}
-        </div>
-      );
-    }
-
-    return (
-      <div
-        key={block.id}
-        onClick={(e) => focusLineFromBlockClick(block, e)}
-        className="markdown-live-block px-3 py-1 -mx-3 cursor-text"
-      >
-        <ReactMarkdown
-          remarkPlugins={[remarkGfm, remarkMath, remarkHighlight, remarkUnderline]}
-          rehypePlugins={[rehypeKatex]}
-          components={markdownComponentsForTaskLines(taskLineIndexesInBlock(block), true)}
-        >
-          {normalizeMarkdownCodeDelimiters(block.text)}
-        </ReactMarkdown>
-      </div>
-    );
-  };
 
   return (
     <ReaderShell
@@ -696,7 +396,7 @@ export function TextReader({
           </div>
         ) : isWriteMode ? (
           <div className={`md-body md-body-wide mx-auto ${markdownColumnClass}`}>
-            {markdownBlocks.map(renderMarkdownBlock)}
+            <MarkdownLiveEditor ref={editorRef} value={draft} onChange={setDraft} />
           </div>
         ) : format === "md" ? (
           <div className={`md-body md-body-wide mx-auto ${markdownColumnClass}`}>
@@ -706,7 +406,7 @@ export function TextReader({
               </div>
             )}
             <ReactMarkdown
-              remarkPlugins={[remarkGfm, remarkMath, remarkHighlight, remarkUnderline]}
+              remarkPlugins={[remarkGfm, remarkMath, remarkHighlight, remarkUnderline, remarkObsidianCommentLines]}
               rehypePlugins={[rehypeKatex]}
             >
               {markdownText}
