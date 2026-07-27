@@ -33,18 +33,19 @@ export async function writeInventory(rows: InventoryRow[]): Promise<void> {
   await writeTextFile(path, JSON.stringify(rows, null, 2));
 }
 
-// Bumps owned count for `rewardId` by 1. Creates a fresh row if the
+// Bumps owned count for `rewardId` by 1 (or `quantity`). Creates a fresh row if the
 // reward has never been acquired before. Returns the resulting row.
 export function acquire(
   rows: InventoryRow[],
   rewardId: string,
+  quantity: number = 1,
 ): { rows: InventoryRow[]; row: InventoryRow } {
   const now = new Date().toISOString();
   const idx = rows.findIndex((r) => r.rewardId === rewardId);
   if (idx === -1) {
     const row: InventoryRow = {
       rewardId,
-      owned: 1,
+      owned: quantity,
       redeemed: 0,
       firstAcquiredAt: now,
       lastAcquiredAt: now,
@@ -54,7 +55,7 @@ export function acquire(
   const existing = rows[idx];
   const updated: InventoryRow = {
     ...existing,
-    owned: existing.owned + 1,
+    owned: existing.owned + quantity,
     lastAcquiredAt: now,
   };
   const next = rows.slice();

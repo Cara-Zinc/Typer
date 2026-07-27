@@ -206,20 +206,17 @@ export function SlotMachine() {
         return;
       }
 
-      // Acquire the won copies into inventory. We sequence to keep the
-      // write order deterministic, though InventoryContext serializes
-      // internally too.
+      // Acquire the won copies into inventory. We batch writes to avoid N+1 I/O
+      // issues when acquiring multiple copies at once.
       const reward = POOL.find((r) => r.id === winId);
       if (!reward) {
         setPhase("no-win");
         return;
       }
-      for (let i = 0; i < winQuantity; i++) {
-        const ok = await acquire(reward.id);
-        if (!ok) {
-          setError("Inventory write failed — token spent but reward not added.");
-          break;
-        }
+      const ok = await acquire(reward.id, winQuantity);
+      if (!ok) {
+        setError("Inventory write failed — token spent but reward not added.");
+        return;
       }
       setWinningReward(reward);
       setWinningPositions(winPositions);
