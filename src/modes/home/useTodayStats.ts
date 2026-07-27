@@ -62,14 +62,19 @@ export function useTodayStats(): TodayStats {
         const parsed = JSON.parse(raw) as TaskEntry[];
         const today = new Date();
         const todays = parsed.filter((e) => sameDay(new Date(e.timestamp), today));
-        const tokensToday = todays.reduce((acc, e) => acc + e.tokens, 0);
         // Approximations — replace with real counters as the app grows them.
-        const wordsRough = todays
-          .filter((e) => e.taskType === "Creative Work" || e.taskType === "Work/Study")
-          .reduce((acc, e) => acc + e.tokens * 25, 0);
-        const pagesRough = todays
-          .filter((e) => e.taskType === "Reading")
-          .reduce((acc, e) => acc + e.tokens, 0);
+        const { tokensToday, wordsRough, pagesRough } = todays.reduce(
+          (acc, e) => {
+            acc.tokensToday += e.tokens;
+            if (e.taskType === "Creative Work" || e.taskType === "Work/Study") {
+              acc.wordsRough += e.tokens * 25;
+            } else if (e.taskType === "Reading") {
+              acc.pagesRough += e.tokens;
+            }
+            return acc;
+          },
+          { tokensToday: 0, wordsRough: 0, pagesRough: 0 }
+        );
         const next: TodayStats = {
           words: wordsRough,
           pages: pagesRough,
