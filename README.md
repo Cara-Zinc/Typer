@@ -23,13 +23,18 @@ color is reserved for earned rewards and selected companion accents.
 ## Development
 
 ```sh
-npm install
+npm ci
+npm test
 npm run build
 npm run tauri dev
 ```
 
+Tests require Node.js 22.12+ (Node.js 24 LTS recommended). The test runner recursively
+discovers `.test.ts`, `.test.cjs`, and `.test.mjs` files under `src/` and `tests/` without relying on shell glob expansion.
+
 Useful scripts:
 
+- `npm test` runs the date and reader-format unit tests.
 - `npm run dev` starts the Vite frontend.
 - `npm run build` runs TypeScript and the Vite production build.
 - `npm run tauri dev` runs the desktop app for end-to-end smoke testing.
