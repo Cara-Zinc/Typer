@@ -18,7 +18,7 @@ import {
 type InventoryContextValue = {
   rows: InventoryRow[];
   loaded: boolean;
-  acquire: (rewardId: string) => Promise<InventoryRow | null>;
+  acquire: (rewardId: string, quantity?: number) => Promise<InventoryRow | null>;
   redeem: (rewardId: string) => Promise<InventoryRow | null>;
   reload: () => Promise<void>;
 };
@@ -44,7 +44,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
     void reload();
   }, [reload]);
 
-  const doAcquire = useCallback(async (rewardId: string): Promise<InventoryRow | null> => {
+  const doAcquire = useCallback(async (rewardId: string, quantity: number = 1): Promise<InventoryRow | null> => {
     let resolveWrite!: () => void;
     const next = new Promise<void>((r) => (resolveWrite = r));
     const prev = writeLockRef.current;
@@ -52,7 +52,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
     await prev;
     try {
       const current = await readInventory();
-      const { rows: updated, row } = acquire(current, rewardId);
+      const { rows: updated, row } = acquire(current, rewardId, quantity);
       await writeInventory(updated);
       setRows(updated);
       return row;

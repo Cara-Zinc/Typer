@@ -11,7 +11,7 @@ const BASE_SPIN_MS = 1400;
 const STAGGER_MS = 500;
 const EVAL_DELAY_MS = 200; // gap after the last reel stops before evaluating
 
-type Phase = "idle" | "spinning" | "evaluating" | "won-3" | "won-2" | "no-win";
+type Phase = "idle" | "spinning" | "evaluating" | "won-3" | "won-2" | "no-win" | "error";
 
 type ReelState = {
   /** What's currently shown in this reel's window. */
@@ -206,24 +206,25 @@ export function SlotMachine() {
         return;
       }
 
-      // Acquire the won copies into inventory. We sequence to keep the
-      // write order deterministic, though InventoryContext serializes
-      // internally too.
+      // Acquire the won copies into inventory. We batch writes to avoid N+1 I/O
+      // issues when acquiring multiple copies at once.
       const reward = POOL.find((r) => r.id === winId);
       if (!reward) {
         setPhase("no-win");
         return;
       }
-      for (let i = 0; i < winQuantity; i++) {
-        const ok = await acquire(reward.id);
-        if (!ok) {
-          setError("Inventory write failed — token spent but reward not added.");
-          break;
-        }
+      try {
+        const row = await acquire(reward.id, winQuantity);
+        if (!row) throw new Error("Inventory write failed");
+        setWinningReward(reward);
+        setWinningPositions(winPositions);
+        setPhase(winQuantity === 3 ? "won-3" : "won-2");
+      } catch {
+        // A failed save must leave the busy phase, including if acquire rejects.
+        // Don't retry automatically: a write may have partially succeeded.
+        setError("Inventory write failed — tokens spent; reward could not be confirmed.");
+        setPhase("error");
       }
-      setWinningReward(reward);
-      setWinningPositions(winPositions);
-      setPhase(winQuantity === 3 ? "won-3" : "won-2");
     },
     [acquire],
   );
