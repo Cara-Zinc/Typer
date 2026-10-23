@@ -1,0 +1,11 @@
+{
+  "name": "@triptych/typer-cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Local-first terminal writing workspace for Triptych",
+  "bin": { "typer": "bin/typer.mjs" },
+  "engines": { "node": ">=22.12.0" },
+  "scripts": { "test": "node --test test/*.test.mjs" },
+  "files": ["bin", "lib", "README.md"]
+}

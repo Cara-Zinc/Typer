@@ -34,6 +34,23 @@ Useful scripts:
 - `npm run build` runs TypeScript and the Vite production build.
 - `npm run tauri dev` runs the desktop app for end-to-end smoke testing.
 
+## Linux CLI
+
+The standalone [Typer CLI](cli/README.md) provides vault browsing, chapter
+creation/renaming/reordering, external-editor integration, text search, Markdown
+export, and a static dashboard with optional ASCII art. It requires Node.js
+22.12+ and runs without Tauri or frontend dependencies:
+
+```sh
+node cli/bin/typer.mjs --help
+node cli/bin/typer.mjs vault init ~/Writing
+node cli/bin/typer.mjs --vault ~/Writing dashboard --art
+npm --prefix cli test
+```
+
+Close the desktop app before CLI writes to a shared vault. Habits, shop, and
+redemption commands are planned after a shared transaction layer is available.
+
 ## Local Data
 
 Triptych stores user data locally through Tauri app data directories.
